@@ -1,0 +1,28 @@
+import React from "react";
+import { Link } from "react-router-dom";
+
+const Navbar = () => {
+   return (
+      <nav className="w-full h-16 border-b border-slate-200 bg-white/80 backdrop-blur-md flex items-center px-8 justify-between sticky top-0 z-50">
+         <Link to={'/'} className="text-slate-900 font-bold tracking-tight text-lg">
+            Atif Shahzad <span className="text-indigo-600">Stock Portfolio</span>
+         </Link>
+         <div className="flex gap-10 text-sm font-semibold text-slate-500">
+            <Link to="stocks" className="hover:text-indigo-600 transition-colors">
+               Stocks
+            </Link>
+            <Link to="portfolio" className="hover:text-indigo-600 transition-colors">
+               Portfolio
+            </Link>
+            <Link to="transaction-history" className="hover:text-indigo-600 transition-colors">
+               Transactions History
+            </Link>
+         </div>
+         <button className="px-5 py-2 bg-indigo-600 text-white text-sm font-bold rounded-lg hover:bg-indigo-700 shadow-sm shadow-indigo-200 transition-all active:scale-95">
+            Connect
+         </button>
+      </nav>
+   );
+};
+
+export default Navbar;
