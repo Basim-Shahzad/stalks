@@ -29,3 +29,23 @@ export interface StockByApi {
    bid: number; // Best buying price
    bidVol: number; // Quantity available at bid price
 }
+
+export interface TradeTransaction {
+   date: string; // Format: "DD-MMM-YY"
+   company: string;
+   symbol: string;
+   buy: number;
+   sell: number;
+   rate: number;
+   commission: number;
+   taxes: number;
+   charges: number;
+   total_amount: number;
+   sector: string;
+}
+
+declare module "@tanstack/react-table" {
+   interface ColumnMeta<TData, TValue> {
+      align?: "left" | "right" | "center";
+   }
+}

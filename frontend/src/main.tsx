@@ -4,11 +4,15 @@ import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom";
 import "./index.css";
 import App from "./App";
 import Navbar from "./components/Navbar";
-import { TransactionHistoryProvider } from "./contexts/TransactionHistoryContext";
-import TransactionHistory from "./pages/TransactionHistory";
+import { TransactionsProvider } from "./contexts/TransactionHistoryContext";
+import Transactions from "./pages/Transactions/Transactions";
 import Portfolio from "./pages/Portfolio";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Stocks from "./pages/Stocks";
+
+import "@mantine/core/styles.css";
+import { MantineProvider, createTheme } from "@mantine/core";
 
 const queryClient = new QueryClient({
    defaultOptions: {
@@ -19,6 +23,10 @@ const queryClient = new QueryClient({
          refetchOnReconnect: false,
       },
    },
+});
+
+const theme = createTheme({
+   /** Customizations here **/
 });
 
 function Layout() {
@@ -38,7 +46,7 @@ const router = createBrowserRouter([
       children: [
          { index: true, element: <App /> },
          { path: "stocks", element: <Stocks /> },
-         { path: "transaction-history", element: <TransactionHistory /> },
+         { path: "transactions", element: <Transactions /> },
          { path: "portfolio", element: <Portfolio /> },
       ],
    },
@@ -48,9 +56,12 @@ const router = createBrowserRouter([
 createRoot(document.getElementById("root")!).render(
    <StrictMode>
       <QueryClientProvider client={queryClient}>
-         <TransactionHistoryProvider>
-            <RouterProvider router={router} />
-         </TransactionHistoryProvider>
+         <MantineProvider theme={theme} defaultColorScheme="light">
+            <TransactionsProvider>
+               <ReactQueryDevtools initialIsOpen={false} buttonPosition="top-right" />
+               <RouterProvider router={router} />
+            </TransactionsProvider>
+         </MantineProvider>
       </QueryClientProvider>
    </StrictMode>,
 );

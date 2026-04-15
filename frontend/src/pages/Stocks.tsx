@@ -45,19 +45,29 @@ const StockCard = ({ stock }: StockCardProps) => {
 };
 
 const Stocks = () => {
-   const { data, isLoading, error } = useStocks()
+   // const { data, isLoading, error } = useStocks()
+
+   // if (!data) {
+   //    return 'LOADING'
+   // }
 
    return (
-      <div className="p-8 bg-slate-50 min-h-screen">
-         <div className="max-w-7xl mx-auto">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-               {data.map((stock) => (
-                  <StockCard stock={stock} key={stock.symbol} />
-               ))}
-            </div>
-         </div>
+      <div className="text-9xl" >
+         TODO
       </div>
-   );
+   )
+
+   // return (
+   //    <div className="p-8 bg-slate-50">
+   //       <div className="max-w-7xl mx-auto">
+   //          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+   //             {data!.map((stock) => (
+   //                <StockCard stock={stock} key={stock.symbol} />
+   //             ))}
+   //          </div>
+   //       </div>
+   //    </div>
+   // );
 };
 
 export default Stocks;

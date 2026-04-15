@@ -14,8 +14,8 @@ const Navbar = () => {
             <Link to="portfolio" className="hover:text-indigo-600 transition-colors">
                Portfolio
             </Link>
-            <Link to="transaction-history" className="hover:text-indigo-600 transition-colors">
-               Transactions History
+            <Link to="transactions" className="hover:text-indigo-600 transition-colors">
+               Transactions
             </Link>
          </div>
          <button className="px-5 py-2 bg-indigo-600 text-white text-sm font-bold rounded-lg hover:bg-indigo-700 shadow-sm shadow-indigo-200 transition-all active:scale-95">

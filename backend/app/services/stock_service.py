@@ -60,7 +60,7 @@ def get_bulk_stock_data(tickers, page=1, per_page=10):
 
 def get_single_stock_detail(symbol):
     ticker_sym = symbol.upper()
-    if "." not in ticker_sym:
+    if "." not in ticker_sym
         ticker_sym += ".KA"
 
     try:

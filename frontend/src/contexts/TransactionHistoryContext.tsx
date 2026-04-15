@@ -1,44 +1,38 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import type { StockRow } from "../types";
+import { createContext, type ReactNode } from "react";
+import type { TradeTransaction } from "../types";
+import { useQuery } from "@tanstack/react-query";
+import api from "../services/api.services";
 
-interface TransactionHistoryContextType {
-   transactionsHistory: StockRow[];
-   setTransactionsHistory: (data: StockRow[]) => void;
+interface TransactionsContextType {
+   transactions: TradeTransaction[] | undefined;
+   isLoading: boolean;
 }
 
-const TransactionHistoryContext = createContext<TransactionHistoryContextType | undefined>(undefined);
+interface TransactionsResponseType {
+   success: boolean;
+   data: TradeTransaction[];
+}
 
-export const TransactionHistoryProvider = ({ children }: { children: ReactNode }) => {
-   const [transactionsHistory, setTransactionsHistory] = useState<StockRow[]>([]);
-   const [isLoaded, setIsLoaded] = useState(false);
+export const TransactionsContext = createContext<TransactionsContextType | undefined>(undefined);
 
-   useEffect(() => {
-      const saved = localStorage.getItem("csvData");
-      if (saved) {
-         try {
-            setTransactionsHistory(JSON.parse(saved));
-         } catch (e) {
-            console.error("Failed to parse localStorage", e);
-         }
-      }
-      setIsLoaded(true);
-   }, []);
+export const TransactionsProvider = ({ children }: { children: ReactNode }) => {
+   const getTransactions = async (): Promise<TransactionsResponseType> => {
+      const res = await api.get("/transactions");
+      return res.data;
+   };
 
-   useEffect(() => {
-      if (!isLoaded) return;
-
-      localStorage.setItem("csvData", JSON.stringify(transactionsHistory));
-   }, [transactionsHistory, isLoaded]);
+   const { data, isLoading } = useQuery({
+      queryKey: ["transactions"],
+      queryFn: getTransactions,
+   });
 
    return (
-      <TransactionHistoryContext.Provider value={{ transactionsHistory, setTransactionsHistory }}>
+      <TransactionsContext.Provider
+         value={{
+            transactions: data?.data,
+            isLoading,
+         }}>
          {children}
-      </TransactionHistoryContext.Provider>
+      </TransactionsContext.Provider>
    );
-};
-
-export const useTransactionHistory = () => {
-   const context = useContext(TransactionHistoryContext);
-   if (!context) throw new Error("useData must be used within TransactionHistoryProvider");
-   return context;
 };
