@@ -24,8 +24,6 @@ const TransactionsTable = () => {
    const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
    const [globalFilter, setGlobalFilter] = useState("");
 
-   console.log(transactions);
-
    const columns = useMemo(
       () => [
          columnHelper.accessor("date", {

@@ -21,6 +21,7 @@ Each dict contains:
 
 from __future__ import annotations
 from bs4 import BeautifulSoup
+from datetime import date
 import json
 import logging
 import re
@@ -152,20 +153,24 @@ def _parse_number(s: str) -> float:
     return float(s.replace(",", ""))
 
 
-def _reformat_date(raw: str) -> str:
+def _reformat_date(raw: str) -> date:
     """
-    Convert 'DD-MM-YYYY' (new PDF header) or legacy 'DD-MM-YY' to 'DD-MMM-YY'.
-    e.g. '15-04-2026' -> '15-APR-26'  |  '26-02-26' -> '26-FEB-26'
-    Raises ValueError if format is unrecognised.
+    Convert 'DD-MM-YYYY' (new PDF header) or legacy 'DD-MM-YY' to a
+    Python ``datetime.date`` object.
+
+    e.g. '15-04-2026' → date(2026, 4, 15)
+         '26-02-26'   → date(2026, 2, 26)
+
+    Raises ValueError if the format is unrecognised.
     """
     parts = raw.split("-")
     if len(parts) != 3 or len(parts[1]) != 2:
         raise ValueError(f"Unexpected date format: {raw!r}")
-    month_abbr = _MONTH_MAP.get(parts[1])
-    if month_abbr is None:
-        raise ValueError(f"Unknown month number in date: {raw!r}")
-    year = parts[2][-2:]  # last 2 digits handles both YYYY and YY
-    return f"{parts[0]}-{month_abbr}-{year}"
+    day = int(parts[0])
+    month = int(parts[1])
+    year_raw = parts[2]
+    year = int(year_raw) if len(year_raw) == 4 else 2000 + int(year_raw)
+    return date(year, month, day)
 
 
 def _is_page_header_line(line: str) -> bool:
@@ -635,6 +640,7 @@ def _check_duplicates(transactions: list[dict]) -> list[dict]:
 def save_json(data: list[dict], output_path: str) -> None:
     """
     Write *data* as pretty-printed JSON to *output_path*.
+    ``datetime.date`` values are serialised as ISO-8601 strings ("YYYY-MM-DD").
 
     Parameters
     ----------
@@ -643,10 +649,17 @@ def save_json(data: list[dict], output_path: str) -> None:
     output_path : str
         Destination file path (will be created or overwritten).
     """
+
+    class _DateEncoder(json.JSONEncoder):
+        def default(self, obj):
+            if isinstance(obj, date):
+                return obj.isoformat()  # "YYYY-MM-DD"
+            return super().default(obj)
+
     out = Path(output_path)
     out.parent.mkdir(parents=True, exist_ok=True)
     with open(out, "w", encoding="utf-8") as fh:
-        json.dump(data, fh, indent=2, ensure_ascii=False)
+        json.dump(data, fh, indent=2, ensure_ascii=False, cls=_DateEncoder)
     logger.info("JSON saved → %s  (%d records)", out, len(data))
 
 
@@ -727,5 +740,5 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=logging.INFO)
     result = process_statement(pdf_file, output_json_path=json_file)
-    print(json.dumps(result[:3], indent=2))  # preview first 3 rows
+    print(json.dumps(result[:3], indent=2, default=str))  # preview first 3 rows
     print(f"\n… {len(result)} total rows written to {json_file}")
