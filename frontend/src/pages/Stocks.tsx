@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { StockByApi } from "../types";
 import { useStocks } from "../hooks/useStocks";
 import { useTransactions } from "../hooks/useTransactions";
@@ -104,7 +104,7 @@ const StockCard = ({ stock, isSkeleton }: StockCardProps) => {
                            className={`w-3 h-3 rounded-full border-2 border-white shadow-md ${(stock.change ?? 0) >= 0 ? "bg-emerald-500" : "bg-rose-500"}`}
                         />
                         <div className="absolute -top-8 left-1/2 -translate-x-1/2 flex flex-col items-center">
-                           <span className="text-[13px] font-bold text-slate-900 leading-none">{(stock.price ?? 0)}</span>
+                           <span className="text-[13px] font-bold text-slate-900 leading-none">{stock.price ?? 0}</span>
                            <span
                               className={`text-[9px] font-black uppercase ${(stock.change ?? 0) >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
                               CURRENT
@@ -137,10 +137,16 @@ const StockCard = ({ stock, isSkeleton }: StockCardProps) => {
    );
 };
 
-const Stocks = () => {
-   const { data, isLoading } = useStocks();
+const PAGE_SIZE = 10;
 
-   const displayData = isLoading || !data ? Array.from({ length: 10 }, (_, i) => ({ symbol: `skeleton-${i}` })) : data;
+const Stocks = () => {
+   const [page, setPage] = useState(1);
+   const { data, isLoading } = useStocks(page, PAGE_SIZE);
+
+   console.log(data)
+
+   const displayData =
+      isLoading || !data ? Array.from({ length: PAGE_SIZE }, (_, i) => ({ symbol: `skeleton-${i}` })) : data.stocks;
 
    return (
       <div className="p-8 bg-slate-50">
@@ -149,6 +155,28 @@ const Stocks = () => {
                <StockCard stock={stock as any} key={stock.symbol} isSkeleton={isLoading || !data} />
             ))}
          </div>
+
+         {data && data.total_pages > 1 && (
+            <div className="flex items-center justify-center gap-2 mt-6">
+               <button
+                  onClick={() => setPage((p) => p - 1)}
+                  disabled={!data.has_prev}
+                  className="px-3 py-1.5 text-sm rounded-md border border-slate-200 bg-white disabled:opacity-40 hover:bg-slate-100 transition-colors">
+                  ← Prev
+               </button>
+
+               <span className="text-sm text-slate-500">
+                  {page} / {data.total_pages}
+               </span>
+
+               <button
+                  onClick={() => setPage((p) => p + 1)}
+                  disabled={!data.has_next}
+                  className="px-3 py-1.5 text-sm rounded-md border border-slate-200 bg-white disabled:opacity-40 hover:bg-slate-100 transition-colors">
+                  Next →
+               </button>
+            </div>
+         )}
       </div>
    );
 };
