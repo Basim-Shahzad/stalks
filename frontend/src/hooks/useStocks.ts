@@ -12,6 +12,11 @@ interface StocksPage {
    has_prev: boolean;
 }
 
+interface StocksAll {
+   stocks: StockByApi[];
+   total: number;
+}
+
 const getStocksData = async (page: number, pageSize: number): Promise<StocksPage> => {
    const res = await api.get<StocksPage>("/stocks", {
       params: { page, page_size: pageSize },
@@ -19,10 +24,19 @@ const getStocksData = async (page: number, pageSize: number): Promise<StocksPage
    return res.data;
 };
 
-export const useStocks = (page: number = 1, pageSize: number = 10) => {
+const getAllStocksData = async (): Promise<StocksAll> => {
+   const res = await api.get<StocksAll>("/stocks", {
+      params: { paginated: false },
+   });
+   return res.data;
+};
+
+export function useStocks(paginated?: true, page?: number, pageSize?: number): ReturnType<typeof useQuery<StocksPage>>;
+export function useStocks(paginated: false): ReturnType<typeof useQuery<StocksAll>>;
+export function useStocks(paginated: boolean = true, page: number = 1, pageSize: number = 10) {
    return useQuery({
-      queryKey: ["stocks", page, pageSize],
-      queryFn: () => getStocksData(page, pageSize),
+      queryKey: paginated === false ? ["stocks"] : ["stocks", page, pageSize],
+      queryFn: paginated === false ? () => getAllStocksData() : () => getStocksData(page, pageSize),
       placeholderData: (prev) => prev,
    });
-};
+}

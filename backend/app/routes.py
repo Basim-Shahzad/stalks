@@ -18,9 +18,10 @@ TRANSACTIONS_OUTPUT_FILE = os.environ.get(
 @main_bp.route("/stocks")
 def get_stocks():
     """
-    GET /stocks?page=1&page_size=10
+    GET /stocks?page=1&page_size=10          — paginated (default)
+    GET /stocks?paginated=false              — all stocks, no pagination
 
-    Response:
+    Paginated response:
     {
         "page": 1,
         "page_size": 10,
@@ -30,7 +31,22 @@ def get_stocks():
         "has_prev": false,
         "stocks": [ { "symbol": "OGDC", "data": {...}, "fetched_at": "..." }, ... ]
     }
+
+    Unpaginated response:
+    {
+        "total": 51,
+        "stocks": [ { "symbol": "OGDC", "data": {...}, "fetched_at": "..." }, ... ]
+    }
     """
+    paginated = request.args.get("paginated", "true").lower() != "false"
+
+    if not paginated:
+        try:
+            data = psx.get_all()
+        except Exception as exc:
+            return jsonify({"error": "upstream fetch failed", "detail": str(exc)}), 502
+        return jsonify(data)
+
     try:
         page = int(request.args.get("page", 1))
         page_size = int(request.args.get("page_size", psx.page_size))

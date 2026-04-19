@@ -181,6 +181,21 @@ class PSXClient:
             "stocks": [t.to_dict() for t in items],
         }
 
+    def get_all(self) -> dict:
+        """
+        Fetches all symbols in one shot (no pagination).
+        Returns:
+        {
+            "total": 51,
+            "stocks": [ { "symbol": "...", "fetched_at": "...", ... }, ... ]
+        }
+        """
+        items = self._fetch_many(self.symbols)
+        return {
+            "total": len(items),
+            "stocks": [t.to_dict() for t in items],
+        }
+
     def get_symbol(self, symbol: str) -> dict:
         """Returns a single stock tick as a JSON-serialisable dict."""
         return self._fetch_one(symbol.upper()).to_dict()
