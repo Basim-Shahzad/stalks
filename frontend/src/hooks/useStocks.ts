@@ -38,5 +38,6 @@ export function useStocks(paginated: boolean = true, page: number = 1, pageSize:
       queryKey: paginated === false ? ["stocks"] : ["stocks", page, pageSize],
       queryFn: paginated === false ? () => getAllStocksData() : () => getStocksData(page, pageSize),
       placeholderData: (prev) => prev,
+      staleTime: 60_000
    });
 }

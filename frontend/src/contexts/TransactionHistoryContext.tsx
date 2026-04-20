@@ -1,4 +1,4 @@
-import { createContext, type ReactNode } from "react";
+import { createContext, type ReactNode, type Dispatch, type SetStateAction, useState } from "react";
 import type { TradeTransaction } from "../types";
 import { useQuery } from "@tanstack/react-query";
 import api from "../services/api.services";
@@ -6,6 +6,8 @@ import api from "../services/api.services";
 interface TransactionsContextType {
    transactions: TradeTransaction[] | undefined;
    isLoading: boolean;
+   globalFilter: string
+   setGlobalFilter: Dispatch<SetStateAction<string>>
 }
 
 interface TransactionsResponseType {
@@ -16,6 +18,7 @@ interface TransactionsResponseType {
 export const TransactionsContext = createContext<TransactionsContextType | undefined>(undefined);
 
 export const TransactionsProvider = ({ children }: { children: ReactNode }) => {
+   const [globalFilter, setGlobalFilter] = useState("");
    const getTransactions = async (): Promise<TransactionsResponseType> => {
       const res = await api.get("/transactions");
       return res.data;
@@ -31,6 +34,8 @@ export const TransactionsProvider = ({ children }: { children: ReactNode }) => {
          value={{
             transactions: data?.data,
             isLoading,
+            globalFilter,
+            setGlobalFilter
          }}>
          {children}
       </TransactionsContext.Provider>

@@ -3,6 +3,7 @@ import type { StockByApi } from "../types";
 import { useStocks } from "../hooks/useStocks";
 import { useTransactions } from "../hooks/useTransactions";
 import { Skeleton } from "@mantine/core";
+import { getPriceChange } from "../helpers";
 
 interface StockCardProps {
    stock: StockByApi;
@@ -107,7 +108,7 @@ const StockCard = ({ stock, isSkeleton }: StockCardProps) => {
                            <span className="text-[13px] font-bold text-slate-900 leading-none">{stock.price ?? 0}</span>
                            <span
                               className={`text-[9px] font-black uppercase ${(stock.change ?? 0) >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
-                              CURRENT
+                              {getPriceChange(stats.min, stock.price)}
                            </span>
                         </div>
                      </div>
@@ -141,9 +142,7 @@ const PAGE_SIZE = 10;
 
 const Stocks = () => {
    const [page, setPage] = useState(1);
-   const { data, isLoading } = useStocks(page, PAGE_SIZE);
-
-   console.log(data)
+   const { data, isLoading } = useStocks(true, page, PAGE_SIZE);
 
    const displayData =
       isLoading || !data ? Array.from({ length: PAGE_SIZE }, (_, i) => ({ symbol: `skeleton-${i}` })) : data.stocks;

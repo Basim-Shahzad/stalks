@@ -72,7 +72,7 @@ SYMBOLS: list[str] = [
 
 BASE_URL = "https://psxterminal.com/api/ticks/REG"
 DEFAULT_PAGE_SIZE = 10
-MAX_WORKERS = 8
+MAX_WORKERS = 3
 REQUEST_TIMEOUT = 10
 CACHE_TTL_SECONDS = 60
 
@@ -119,7 +119,7 @@ def _build_session() -> requests.Session:
     session = requests.Session()
     retry = Retry(
         total=3,
-        backoff_factor=0.5,
+        backoff_factor=2,
         status_forcelist=(429, 500, 502, 503, 504),
         allowed_methods=["GET"],
     )

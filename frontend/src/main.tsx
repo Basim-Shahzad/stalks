@@ -54,14 +54,12 @@ const router = createBrowserRouter([
 
 /* Render */
 createRoot(document.getElementById("root")!).render(
-   <StrictMode>
-      <QueryClientProvider client={queryClient}>
-         <MantineProvider theme={theme} defaultColorScheme="light">
-            <TransactionsProvider>
-               <ReactQueryDevtools initialIsOpen={false} buttonPosition="top-right" />
-               <RouterProvider router={router} />
-            </TransactionsProvider>
-         </MantineProvider>
-      </QueryClientProvider>
-   </StrictMode>,
+   <QueryClientProvider client={queryClient}>
+      <MantineProvider theme={theme} defaultColorScheme="light">
+         <TransactionsProvider>
+            <ReactQueryDevtools client={queryClient} />
+            <RouterProvider router={router} />
+         </TransactionsProvider>
+      </MantineProvider>
+   </QueryClientProvider>,
 );

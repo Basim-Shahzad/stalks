@@ -19,10 +19,9 @@ const fmt = (n: number) =>
    n === 0 ? "—" : n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const TransactionsTable = () => {
-   const { isLoading, transactions } = useTransactions();
+   const { isLoading, transactions, globalFilter, setGlobalFilter } = useTransactions();
    const [sorting, setSorting] = useState<SortingState>([]);
    const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-   const [globalFilter, setGlobalFilter] = useState("");
 
    const columns = useMemo(
       () => [
