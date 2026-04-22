@@ -10,65 +10,25 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
 from typing import Any, Optional
 
+import os
+import sqlite3
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 logger = logging.getLogger(__name__)
 
-SYMBOLS: list[str] = [
-    "AHCL",
-    "AICL",
-    "AKBL",
-    "ANL",
-    "ATLH",
-    "ATRL",
-    "BAFL",
-    "BIPL",
-    "BOP",
-    "CNERGY",
-    "DGKC",
-    "EFERT",
-    "ENGROH",
-    "FATIMA",
-    "FFC",
-    "FFL",
-    "GHNI",
-    "GLAXO",
-    "ILP",
-    "JDWS",
-    "JVDC",
-    "KEL",
-    "LUCK",
-    "MARI",
-    "MCB",
-    "MEBL",
-    "MFFL",
-    "MLCF",
-    "MTL",
-    "NATF",
-    "NCPL",
-    "NML",
-    "NPL",
-    "OCTOPUS",
-    "OGDC",
-    "PAKQATAR",
-    "PAKT",
-    "PKGS",
-    "POWER",
-    "PPL",
-    "PRL",
-    "PSO",
-    "PSX",
-    "SAZEW",
-    "SEARL",
-    "SML",
-    "SNGP",
-    "SRVI",
-    "SYS",
-    "TPL",
-    "UBL",
-]
+DB_PATH = os.path.join(os.path.dirname(__file__), "../data/db.db")
+
+def load_unique_symbols_from_db() -> list[str]:
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+
+    cur.execute("SELECT DISTINCT symbol FROM transactions")
+    rows = cur.fetchall()
+
+    conn.close()
+    return [r[0] for r in rows]
 
 BASE_URL = "https://psxterminal.com/api/ticks/REG"
 DEFAULT_PAGE_SIZE = 10
@@ -132,13 +92,13 @@ def _build_session() -> requests.Session:
 class PSXClient:
     def __init__(
         self,
-        symbols: list[str] = SYMBOLS,
+        symbols: list[str] | None = None,
         page_size: int = DEFAULT_PAGE_SIZE,
         max_workers: int = MAX_WORKERS,
         timeout: int = REQUEST_TIMEOUT,
         cache_ttl: int = CACHE_TTL_SECONDS,
     ) -> None:
-        self.symbols = symbols
+        self.symbols = symbols or []
         self.page_size = page_size
         self.max_workers = max_workers
         self.timeout = timeout
@@ -250,4 +210,5 @@ class PSXClient:
 
 
 # Module-level singleton — import and use directly in your routes
-psx = PSXClient()
+symbols = load_unique_symbols_from_db()
+psx = PSXClient(symbols=symbols)
