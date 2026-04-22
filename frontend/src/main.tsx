@@ -13,6 +13,7 @@ import Stocks from "./pages/Stocks";
 
 import "@mantine/core/styles.css";
 import { MantineProvider, createTheme } from "@mantine/core";
+import { SettingsProvider } from "./contexts/SettingsContext";
 
 const queryClient = new QueryClient({
    defaultOptions: {
@@ -57,8 +58,10 @@ createRoot(document.getElementById("root")!).render(
    <QueryClientProvider client={queryClient}>
       <MantineProvider theme={theme} defaultColorScheme="light">
          <TransactionsProvider>
-            <ReactQueryDevtools client={queryClient} />
-            <RouterProvider router={router} />
+            <SettingsProvider>
+               <ReactQueryDevtools client={queryClient} />
+               <RouterProvider router={router} />
+            </SettingsProvider>
          </TransactionsProvider>
       </MantineProvider>
    </QueryClientProvider>,
