@@ -3,6 +3,7 @@ import { Group, Drawer, Button, LoadingOverlay } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { useTransactions } from "../../hooks/useTransactions";
 import { useSettings } from "../../hooks/useSettings";
+import { useStocks } from "../../hooks/useStocks";
 import { exportToCSV } from "../../services/csvBasket.service";
 
 const BuyAndSell = () => {
