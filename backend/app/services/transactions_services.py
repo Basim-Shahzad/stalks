@@ -18,24 +18,9 @@ OUTPUT_PATH = BASE_DIR / "app" / "data" / TRANSACTIONS_OUTPUT_FILE
 
 
 def process_file(file_path: str | Path) -> dict:
-    """
-    Parse a Munir Khanani broker statement PDF, persist transactions to the
-    database, and return a structured result.
-
-    Parameters
-    ----------
-    file_path : str | Path
-        Path to the broker statement PDF.
-
-    Returns
-    -------
-    dict
-        On success:  { "success": True,  "data": list[dict], "count": int }
-        On failure:  { "success": False, "error": str }
-    """
-    # --- input validation ---
     path = Path(file_path)
 
+    # --- input validation ---
     if not path.exists():
         return {"success": False, "error": f"File not found: {file_path}"}
     if path.suffix.lower() != ".pdf":
@@ -49,9 +34,12 @@ def process_file(file_path: str | Path) -> dict:
     except OSError as exc:
         return {"success": False, "error": f"Cannot create output directory: {exc}"}
 
-    # --- parse ---
+    # --- parse (this already writes JSON once) ---
     try:
-        transactions = process_statement(str(path), output_json_path=str(OUTPUT_PATH))
+        transactions = process_statement(
+            str(path),
+            output_json_path=str(OUTPUT_PATH),  # ✅ single source of JSON writing
+        )
     except FileNotFoundError as exc:
         return {"success": False, "error": str(exc)}
     except ValueError as exc:
@@ -67,8 +55,11 @@ def process_file(file_path: str | Path) -> dict:
     # --- persist to database ---
     try:
         db_records = []
+
         for t in transactions:
             raw_date = t.get("date")
+
+            # ensure DB gets a date object
             if isinstance(raw_date, str):
                 raw_date = date.fromisoformat(raw_date)
 
@@ -85,36 +76,30 @@ def process_file(file_path: str | Path) -> dict:
                 charges=t.get("charges", 0.0),
                 total_amount=t["total_amount"],
             )
+
             db_records.append(record)
 
         db.session.add_all(db_records)
         db.session.commit()
+
     except Exception as exc:
         db.session.rollback()
         logger.exception("Failed to persist transactions to database")
         return {"success": False, "error": f"Database error: {exc}"}
 
-    # --- append to JSON file ---
-    existing_transactions = []
-    if OUTPUT_PATH.exists() and OUTPUT_PATH.stat().st_size > 0:
-        try:
-            existing_transactions = json.loads(OUTPUT_PATH.read_text(encoding="utf-8"))
-            if not isinstance(existing_transactions, list):
-                existing_transactions = []
-        except (json.JSONDecodeError, OSError):
-            existing_transactions = []
-
-    merged = existing_transactions + transactions
-    try:
-        OUTPUT_PATH.write_text(
-            json.dumps(merged, indent=2, ensure_ascii=False), encoding="utf-8"
-        )
-    except OSError as exc:
-        logger.error("Failed to write merged transactions to %s: %s", OUTPUT_PATH, exc)
-        return {"success": False, "error": f"Failed to save merged data: {exc}"}
-
+    # --- return API-safe response ---
     return {
         "success": True,
-        "data": transactions,
+        "data": [
+            {
+                **t,
+                "date": (
+                    t["date"].isoformat()
+                    if isinstance(t.get("date"), date)
+                    else t["date"]
+                ),
+            }
+            for t in transactions
+        ],
         "count": len(transactions),
     }
