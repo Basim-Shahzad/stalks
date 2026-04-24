@@ -6,7 +6,7 @@ import App from "./App";
 import Navbar from "./components/Navbar";
 import { TransactionsProvider } from "./contexts/TransactionHistoryContext";
 import Transactions from "./pages/Transactions/Transactions";
-import Portfolio from "./pages/Portfolio";
+import Portfolio from "./pages/Portfolio/Portfolio";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Stocks from "./pages/Stocks";
