@@ -3,11 +3,14 @@ import { useTransactionsFromPDF } from "../../hooks/useTransactionsFromPDF";
 
 const TransactionsHeader = () => {
    const [file, setFile] = useState<File | null>(null);
-   const { mutate, data, isPending, error } = useTransactionsFromPDF();
+   const { mutate, data, isPending, error, isSuccess } = useTransactionsFromPDF();
 
    const handleUpload = () => {
       if (!file) return;
       mutate(file);
+      if (isSuccess) {
+         setFile(null);
+      }
    };
 
    return (
@@ -34,8 +37,14 @@ const TransactionsHeader = () => {
                Error processing document. Please try again.
             </div>
          )}
+
+         {isSuccess && (
+            <div className="p-3 bg-green-50 border border-green-100 rounded-lg text-green-600 text-xs font-medium text-center">
+               Successfully uploaded the PDF.
+            </div>
+         )}
       </header>
    );
 };
 
-export default TransactionsHeader
+export default TransactionsHeader;

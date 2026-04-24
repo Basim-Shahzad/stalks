@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { Group, Drawer, Button, LoadingOverlay } from "@mantine/core";
+import { Group, Drawer, Button, LoadingOverlay, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { useTransactions } from "../../hooks/useTransactions";
 import { useSettings } from "../../hooks/useSettings";
@@ -10,20 +9,7 @@ const BuyAndSell = () => {
    const [opened, { open, close }] = useDisclosure(false);
    const { isLoading, transactions } = useTransactions();
    const { increaseByPercInSell } = useSettings();
-   const { data: dataStocks, isLoading: stocksLoading } = useStocks(false);
-
-   if (stocksLoading || !dataStocks) {
-      return (
-         <Group justify="center">
-            <Button size="md" loading onClick={open}>
-               SELL
-            </Button>
-            <Button loading size="md">
-               BUY
-            </Button>
-         </Group>
-      );
-   }
+   const { data: dataStocks } = useStocks(false);
 
    const sellableStocks =
       transactions?.flatMap((t) => {
@@ -62,9 +48,18 @@ const BuyAndSell = () => {
 
    return (
       <div>
-         <Drawer opened={opened} size="xl" onClose={close} title="SELL" style={{ whiteSpace: "pre-line" }}>
+         <Drawer
+            opened={opened}
+            size="xl"
+            onClose={close}
+            title={
+               <Text fw={60} size="xl" style={{ letterSpacing: "1px" }}>
+                  SELL
+               </Text>
+            }
+            style={{ whiteSpace: "pre-line" }}>
             <LoadingOverlay visible={isLoading} zIndex={1000} overlayProps={{ radius: "sm" }} />
-            <Button size="compact-xl" onClick={() => exportToCSV(sellableStocks)}>
+            <Button size="compact-xl" onClick={() => exportToCSV(sellableStocks as any)}>
                Download CSV
             </Button>
             <div className="mt-6 overflow-hidden rounded-xl border border-gray-200 shadow-sm">
