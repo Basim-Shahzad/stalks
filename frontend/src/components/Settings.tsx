@@ -11,7 +11,7 @@ const Settings = ({ opened, close }: any) => {
          position="right"
          size="md"
          title={
-            <Text fw={800} size="xl" style={{ letterSpacing: "1px" }}>
+            <Text size="xl" style={{ letterSpacing: "1px" }}>
                SETTINGS
             </Text>
          }
@@ -28,10 +28,9 @@ const Settings = ({ opened, close }: any) => {
                      description="The minimum % gain required to suggest a sell"
                      value={increaseByPercInSell}
                      onChange={(val) => setIncreaseByPercInSell(Number(val))}
-                     step={0.1}
+                     step={0.01}
                      min={0}
                      max={100}
-                     decimalScale={1}
                      fixedDecimalScale
                      rightSection={
                         <Text size="xs" c="dimmed" pr="md">
