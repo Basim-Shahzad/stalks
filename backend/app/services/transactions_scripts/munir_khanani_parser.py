@@ -631,46 +631,13 @@ def _check_duplicates(transactions: list[dict]) -> list[dict]:
         logger.info("Deduplication: removed %d duplicate row(s).", removed)
     return kept
 
-
-# ---------------------------------------------------------------------------
-# JSON serialisation
-# ---------------------------------------------------------------------------
-
-
-def save_json(data: list[dict], output_path: str) -> None:
-    """
-    Write *data* as pretty-printed JSON to *output_path*.
-    ``datetime.date`` values are serialised as ISO-8601 strings ("YYYY-MM-DD").
-
-    Parameters
-    ----------
-    data : list[dict]
-        Transaction records as returned by process_statement().
-    output_path : str
-        Destination file path (will be created or overwritten).
-    """
-
-    class _DateEncoder(json.JSONEncoder):
-        def default(self, obj):
-            if isinstance(obj, date):
-                return obj.isoformat()  # "YYYY-MM-DD"
-            return super().default(obj)
-
-    out = Path(output_path)
-    out.parent.mkdir(parents=True, exist_ok=True)
-    with open(out, "w", encoding="utf-8") as fh:
-        json.dump(data, fh, indent=2, ensure_ascii=False, cls=_DateEncoder)
-    logger.info("JSON saved → %s  (%d records)", out, len(data))
-
-
 # ---------------------------------------------------------------------------
 # Public entry point
 # ---------------------------------------------------------------------------
 
 
 def process_statement(
-    pdf_path: str,
-    output_json_path: Optional[str] = None,
+    pdf_path: str
 ) -> list[dict]:
     """
     Full pipeline: extract → validate → enrich sectors → (optionally) save.
@@ -682,9 +649,6 @@ def process_statement(
     ----------
     pdf_path : str
         Path to the Munir Khanani broker statement PDF.
-    output_json_path : str, optional
-        If provided, the resulting JSON is written to this path as a
-        side-effect. The list is always returned regardless.
 
     Returns
     -------
@@ -716,10 +680,6 @@ def process_statement(
 
     # Step 4 – fetch & attach PSX sectors
     _enrich_with_sectors(transactions)
-
-    # Step 5 – optionally persist to disk
-    if output_json_path:
-        save_json(transactions, output_json_path)
 
     logger.info("=== PSX Statement Parser: done (%d records) ===", len(transactions))
     return transactions
