@@ -1,6 +1,6 @@
 from datetime import date, datetime
 from app import db
-from .mixin import TimestampMixin
+from .data.mixin import TimestampMixin
 from sqlalchemy.orm import Mapped, mapped_column, validates
 from sqlalchemy import String, Integer, Numeric, Date
 

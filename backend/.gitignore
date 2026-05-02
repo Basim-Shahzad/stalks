@@ -2,3 +2,5 @@
 __pycache__*
 venv/
 image.png
+.env.production
+.env.development

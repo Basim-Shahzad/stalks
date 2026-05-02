@@ -1,12 +1,12 @@
 from flask import Blueprint, jsonify, request
-from .services.transactions_services import process_file
-from .services.psx_client import psx
+from .services.transactions_service import process_file
+from .services.psx_service import psx
 from pathlib import Path
 import os
 import tempfile
 import uuid
 import json
-from .data.models import Transaction
+from .models import Transaction
 
 main_bp = Blueprint("main", __name__)
 
