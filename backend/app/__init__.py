@@ -4,13 +4,14 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from config import configs
+from .config import configs
 
 db = SQLAlchemy()
 migrate = Migrate()
 
 def create_app():
     env = os.environ.get('FLASK_ENV', 'development')
+    print("Enviroment:", env.upper())
     load_dotenv(f'.env.{env}')
 
     config = configs[env]
@@ -23,7 +24,7 @@ def create_app():
     db.init_app(app)
     migrate.init_app(app, db, render_as_batch=True)
 
-    from backend.app.models import Transaction
+    from .models import Transaction
 
     from .routes import main_bp
     app.register_blueprint(main_bp)
