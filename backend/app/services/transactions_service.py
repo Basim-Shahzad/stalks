@@ -1,5 +1,5 @@
 from app.services.transactions_scripts.munir_khanani_parser import process_statement
-from app.data.models import Transaction
+from app.models import Transaction
 from app import db
 from pathlib import Path
 from datetime import date
@@ -8,7 +8,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def process_file(file_path: str | Path) -> dict:
+def process_file(file_path: str | Path, portfolio_id: str) -> dict:
     path = Path(file_path)
 
     # --- input validation ---
@@ -46,6 +46,7 @@ def process_file(file_path: str | Path) -> dict:
                 raw_date = date.fromisoformat(raw_date)
 
             record = Transaction(
+                portfolio_id=portfolio_id,
                 transaction_date=raw_date,
                 company=t["company"],
                 symbol=t["symbol"],
@@ -83,5 +84,4 @@ def process_file(file_path: str | Path) -> dict:
             }
             for t in transactions
         ],
-        "count": len(transactions),
     }
