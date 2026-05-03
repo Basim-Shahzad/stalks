@@ -16,3 +16,8 @@ class BaseConfig:
             cls.SQLALCHEMY_DATABASE_URI = raw_uri
         
         cls.CORS_ORIGINS = os.environ["CORS_ORIGINS"].split(",")
+
+        cls.JWT_SECRET_KEY = os.environ["JWT_SECRET_KEY"]
+        cls.JWT_ACCESS_TOKEN_EXPIRES = 900
+        cls.JWT_REFRESH_TOKEN_EXPIRES = 2592000
+        cls.JWT_TOKEN_LOCATION = ["headers", "cookies"]

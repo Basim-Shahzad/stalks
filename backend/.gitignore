@@ -3,4 +3,5 @@ __pycache__*
 venv/
 image.png
 .env.production
+migrations/
 .env.development
