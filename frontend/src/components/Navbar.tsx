@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
 import Settings from "./Settings";
-import { useDisclosure } from "@mantine/hooks";
+import { useOverlayState } from "@heroui/react";
 
 const Navbar = () => {
-   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
-   const [opened, { open, close }] = useDisclosure(false);
+   // HeroUI v3 uses useOverlayState instead of Mantine's useDisclosure
+   const settingsState = useOverlayState();
 
    return (
       <nav className="w-full h-16 border-b border-slate-200 bg-white/80 backdrop-blur-md flex items-center px-8 justify-between sticky top-0 z-50">
@@ -24,7 +24,7 @@ const Navbar = () => {
             </Link>
          </div>
          <button
-            onClick={open}
+            onClick={settingsState.open}
             className="text-white flex items-center gap-2 text-sm font-bold rounded-lg transition-all">
             <svg
                xmlns="http://www.w3.org/2000/svg"
@@ -42,7 +42,7 @@ const Navbar = () => {
             </svg>
          </button>
 
-         <Settings opened={opened} close={close} />
+         <Settings isOpen={settingsState.isOpen} onClose={settingsState.close} />
       </nav>
    );
 };

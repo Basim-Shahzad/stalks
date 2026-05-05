@@ -1,4 +1,4 @@
-import { Card, Title } from "@mantine/core";
+import { Card, CardTitle } from "@heroui/react";
 
 const formatPKR = (value: number) =>
    new Intl.NumberFormat("en-PK", {
@@ -16,13 +16,13 @@ interface StatCardProps {
 export const StatCard: React.FC<StatCardProps> = ({ title, stat, isCurrency }) => {
    return (
       <Card padding="lg" style={{ borderLeft: "4px solid blue", width: 300 }} withBorder className="">
-         <Title size={15} style={{ fontWeight: "normal", color: "gray" }}>
+         <CardTitle size={15} style={{ fontWeight: "normal", color: "gray" }}>
             {title.toUpperCase()}
-         </Title>
+         </CardTitle>
 
-         <Title size={35} className="text-gray-800">
+         <CardTitle size={35} className="text-gray-800">
             {isCurrency ? formatPKR(stat) : stat}
-         </Title>
+         </CardTitle>
       </Card>
    );
 };

@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import type { StockByApi } from "../types";
 import { useStocks } from "../hooks/useStocks";
 import { useTransactions } from "../hooks/useTransactions";
-import { Skeleton } from "@mantine/core";
 import { getPriceChange } from "../helpers";
 
 interface StockCardProps {
@@ -48,7 +47,6 @@ const StockCard = ({ stock, isSkeleton }: StockCardProps) => {
    };
 
    return (
-      <Skeleton visible={isSkeleton || transLoading}>
          <div className="group cursor-pointer p-4 bg-white border border-slate-200 rounded-xl hover:border-indigo-300 hover:shadow-md transition-all duration-200">
             {/* Header Section */}
             <div className="flex justify-between items-start mb-2">
@@ -134,7 +132,6 @@ const StockCard = ({ stock, isSkeleton }: StockCardProps) => {
                </div>
             </div>
          </div>
-      </Skeleton>
    );
 };
 
