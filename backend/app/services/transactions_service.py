@@ -1,5 +1,5 @@
 from app.services.transactions_scripts.munir_khanani_parser import process_statement
-from app.data.models import Transaction
+from app.models import Transaction
 from app import db
 from pathlib import Path
 from datetime import date
