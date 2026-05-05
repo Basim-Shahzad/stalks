@@ -1,48 +1,95 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
-import Settings from "./Settings";
-import { useDisclosure } from "@mantine/hooks";
+import { useState, useRef } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Button } from "@heroui/react";
+import ProductMegaMenu from "../pages/Product/components/ProductMegaMenu";
+
+const NAV_ITEMS = [
+   { label: "Product", isMega: true },
+   { label: "Pricing", path: "/pricing" },
+   { label: "Demo", path: "/demo" },
+   { label: "Contact", path: "/contact" },
+];
 
 const Navbar = () => {
-   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
-   const [opened, { open, close }] = useDisclosure(false);
+   const location = useLocation();
+   const navigate = useNavigate();
+   const [isMenuOpen, setIsMenuOpen] = useState(false);
+   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+   const openMenu = () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      setIsMenuOpen(true);
+   };
+
+   const closeMenu = () => {
+      timeoutRef.current = setTimeout(() => setIsMenuOpen(false), 100);
+   };
 
    return (
-      <nav className="w-full h-16 border-b border-slate-200 bg-white/80 backdrop-blur-md flex items-center px-8 justify-between sticky top-0 z-50">
-         <Link to={"/"} className="text-slate-900 font-bold tracking-tight text-lg">
-            Atif Shahzad <span className="text-indigo-600">Stock Portfolio</span>
-         </Link>
-         <div className="flex gap-10 text-sm font-semibold text-slate-500">
-            <Link to="stocks" className="hover:text-indigo-600 transition-colors">
-               Stocks
-            </Link>
-            <Link to="portfolio" className="hover:text-indigo-600 transition-colors">
-               Portfolio
-            </Link>
-            <Link to="transactions" className="hover:text-indigo-600 transition-colors">
-               Transactions
+      <nav className="sticky top-0 z-50 flex h-16 w-full items-center justify-between border-b border-white/6 bg-black/95 px-6 font-sans backdrop-blur-md">
+         <div className="flex items-center">
+            <Link to="/" className="flex items-center gap-3 transition-transform active:scale-95">
+               <div className="relative">
+                  <div className="absolute -inset-1 rounded-lg bg-[#22d07a]/20 blur-sm"></div>
+                  <img src="/logo.png" className="relative w-8 rounded-lg" alt="Logo" />
+               </div>
+               <span className="text-[22px] font-medium tracking-tight text-white">Stalks</span>
             </Link>
          </div>
-         <button
-            onClick={open}
-            className="text-white flex items-center gap-2 text-sm font-bold rounded-lg transition-all">
-            <svg
-               xmlns="http://www.w3.org/2000/svg"
-               width="28"
-               height="28"
-               viewBox="0 0 24 24"
-               fill="none"
-               stroke="currentColor"
-               strokeWidth="2"
-               strokeLinecap="round"
-               strokeLinejoin="round"
-               className="lucide hover:fill-[#4F39F6] cursor-pointer text-[#4F39F6] lucide-settings-icon lucide-settings">
-               <path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915" />
-               <circle cx="12" cy="12" r="3" />
-            </svg>
-         </button>
 
-         <Settings opened={opened} close={close} />
+         <div className="flex items-center gap-8">
+            <div className="hidden items-center gap-1 md:flex">
+               {NAV_ITEMS.map((link) => {
+                  const isActive = location.pathname === link.path;
+                  const baseStyles = `relative rounded-full px-4 py-1.5 text-[13px] font-medium transition-all duration-300 ${
+                     isActive ? "text-[#22d07a]" : "text-[#8a8f9f] hover:text-white hover:bg-white/3"
+                  }`;
+
+                  if (link.isMega) {
+                     return (
+                        <div
+                           key={link.label}
+                           className="relative"
+                           onMouseEnter={openMenu}
+                           onMouseLeave={closeMenu}
+                        >
+                           <button className={`${baseStyles} cursor-pointer flex items-center gap-1`}>
+                              {link.label}
+                           </button>
+
+                           {isMenuOpen && <ProductMegaMenu />}
+                        </div>
+                     );
+                  }
+
+                  return (
+                     <Button
+                        key={link.path}
+                        variant="ghost"
+                        className={baseStyles}
+                        onPress={() => navigate(link.path!)}
+                     >
+                        {link.label}
+                     </Button>
+                  );
+               })}
+            </div>
+
+            <div className="h-5 w-px bg-white/8" />
+
+            <div className="flex items-center gap-5">
+               <Link to="/login" className="text-[13px] font-semibold text-[#8a8f9f] hover:text-white">
+                  Log in
+               </Link>
+               <Link
+                  to="/signup"
+                  className="relative group overflow-hidden rounded-full bg-white px-5 py-2 text-[13px] font-bold text-black transition-all active:scale-95"
+               >
+                  <span className="relative z-10">Get started</span>
+                  <div className="absolute inset-0 translate-y-full bg-[#22d07a] transition-transform duration-300 group-hover:translate-y-0" />
+               </Link>
+            </div>
+         </div>
       </nav>
    );
 };
