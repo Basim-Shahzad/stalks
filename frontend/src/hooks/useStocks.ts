@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import api from "../services/api.services";
 import type { StockByApi } from "../types";
+import api from "../services/api.services";
 
 interface StocksPage {
    stocks: StockByApi[];
@@ -31,13 +31,24 @@ const getAllStocksData = async (): Promise<StocksAll> => {
    return res.data;
 };
 
-export function useStocks(paginated?: true, page?: number, pageSize?: number): ReturnType<typeof useQuery<StocksPage>>;
-export function useStocks(paginated: false): ReturnType<typeof useQuery<StocksAll>>;
-export function useStocks(paginated: boolean = true, page: number = 1, pageSize: number = 10) {
+export function useStocks(
+   paginated?: true,
+   page?: number,
+   pageSize?: number,
+   enabled?: boolean,
+): ReturnType<typeof useQuery<StocksPage>>;
+export function useStocks(
+   paginated: false,
+   page?: number,
+   pageSize?: number,
+   enabled?: boolean,
+): ReturnType<typeof useQuery<StocksAll>>;
+export function useStocks(paginated: boolean = true, page: number = 1, pageSize: number = 10, enabled: boolean = true) {
    return useQuery({
       queryKey: paginated === false ? ["stocks"] : ["stocks", page, pageSize],
       queryFn: paginated === false ? () => getAllStocksData() : () => getStocksData(page, pageSize),
+      enabled: paginated === false ? enabled : true,
       placeholderData: (prev) => prev,
-      staleTime: 60_000
+      staleTime: 60_000,
    });
 }

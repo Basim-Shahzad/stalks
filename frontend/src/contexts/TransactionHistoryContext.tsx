@@ -6,8 +6,8 @@ import api from "../services/api.services";
 interface TransactionsContextType {
    transactions: TradeTransaction[] | undefined;
    isLoading: boolean;
-   globalFilter: string
-   setGlobalFilter: Dispatch<SetStateAction<string>>
+   globalFilter: string;
+   setGlobalFilter: Dispatch<SetStateAction<string>>;
 }
 
 interface TransactionsResponseType {
@@ -19,6 +19,7 @@ export const TransactionsContext = createContext<TransactionsContextType | undef
 
 export const TransactionsProvider = ({ children }: { children: ReactNode }) => {
    const [globalFilter, setGlobalFilter] = useState("");
+
    const getTransactions = async (): Promise<TransactionsResponseType> => {
       const res = await api.get("/transactions");
       return res.data;
@@ -35,7 +36,7 @@ export const TransactionsProvider = ({ children }: { children: ReactNode }) => {
             transactions: data?.data,
             isLoading,
             globalFilter,
-            setGlobalFilter
+            setGlobalFilter,
          }}>
          {children}
       </TransactionsContext.Provider>
