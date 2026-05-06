@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 from .services.transactions_service import process_file
-from .services.psx_client import psx
+from .services.psx_stocks_service import psx
 from pathlib import Path
 import os
 import tempfile
