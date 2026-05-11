@@ -1,10 +1,22 @@
-from dotenv import load_dotenv
 import os
+from pathlib import Path
+from pydantic import SecretStr
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-load_dotenv()
+BASE_DIR = Path(__file__).resolve().parent.parent
+ENV_PATH = BASE_DIR / ".env"
 
-class Settings:
-    SQLALCHEMY_DATABASE_URI = os.getenv("SQLALCHEMY_DATABASE_URL")
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=ENV_PATH, env_file_encoding="utf-8")
+
+    SQLALCHEMY_DATABASE_URI: str
+
+    secret_key: SecretStr
+    algorithm: str = "HS256"
+    access_token_expire_minutes: int = 15
+    refresh_token_expire_days: int = 30
+    
+
 
 settings = Settings()
