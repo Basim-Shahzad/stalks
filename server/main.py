@@ -1,13 +1,16 @@
-from fastapi import FastAPI, Depends, Request, status, HTTPException
-from typing import Annotated
-from sqlalchemy import select
-from sqlalchemy.orm import Session
+from fastapi import FastAPI
 from models.User import User
+from models.Portfolio import Portfolio
+from models.Transaction import Transaction
+from models.RefreshToken import RefreshToken
 from db.database import Base, engine
+from api.v1.api import api_router
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+app.include_router(api_router)
 
 
 @app.get("/")
