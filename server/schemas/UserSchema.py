@@ -1,20 +1,22 @@
 from datetime import datetime
-from pydantic import BaseModel, Field, EmailStr, ConfigDict
+from pydantic import Field, EmailStr
 import uuid
 from typing import Optional
+from .base import CamelModel
 
 
-class UserBase(BaseModel):
+class UserBase(CamelModel):
+
     name: str = Field(..., min_length=3, max_length=255)
     email: EmailStr = Field(..., max_length=255)
     is_active: bool = True
 
 
-class UserCreateSchema(UserBase):
+class UserCreateSchema(CamelModel):
     password: str = Field(..., min_length=8)
 
 
-class UserUpdateSchema(BaseModel):
+class UserUpdateSchema(CamelModel):
     # Fields are optional for PATCH requests
     name: Optional[str] = Field(None, min_length=3, max_length=255)
     email: Optional[EmailStr] = None
@@ -22,18 +24,15 @@ class UserUpdateSchema(BaseModel):
     is_active: Optional[bool] = None
 
 
-class UserResponseSchema(UserBase):
-    model_config = ConfigDict(from_attributes=True)
+class UserResponseSchema(CamelModel):
 
     id: uuid.UUID
     created_at: datetime
     updated_at: datetime
 
 
-class UserPublicResponse(BaseModel):
+class UserPublicResponse(CamelModel):
     """Minimal view for public profiles"""
-
-    model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
     name: str
