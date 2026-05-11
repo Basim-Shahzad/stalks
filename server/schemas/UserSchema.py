@@ -12,19 +12,18 @@ class UserBase(CamelModel):
     is_active: bool = True
 
 
-class UserCreateSchema(CamelModel):
+class UserCreateSchema(UserBase):
     password: str = Field(..., min_length=8)
 
 
 class UserUpdateSchema(CamelModel):
     # Fields are optional for PATCH requests
     name: Optional[str] = Field(None, min_length=3, max_length=255)
-    email: Optional[EmailStr] = None
     password: Optional[str] = Field(None, min_length=8)
     is_active: Optional[bool] = None
 
 
-class UserResponseSchema(CamelModel):
+class UserResponseSchema(UserBase):
 
     id: uuid.UUID
     created_at: datetime
