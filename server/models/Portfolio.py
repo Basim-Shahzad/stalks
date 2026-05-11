@@ -1,8 +1,9 @@
 import enum
+import uuid
 from db.database import Base
 from models.mixins.TimestampMixin import TimestampMixin
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import String, ForeignKey, Enum, event
+from sqlalchemy import String, ForeignKey, Enum, event, UUID
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -20,15 +21,16 @@ class ExchangeType(enum.Enum):
 class Portfolio(TimestampMixin, Base):
     __tablename__ = "portfolios"
 
-    user_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id"), nullable=False, index=True
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True).with_variant(String(36), "mysql"),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
     )
     user: Mapped["User"] = relationship("User", back_populates="portfolios")
     exchange: Mapped[ExchangeType] = mapped_column(Enum(ExchangeType), nullable=False)
     currency: Mapped[str] = mapped_column(String(10), nullable=False, default="USD")
-
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    description: Mapped[str] = mapped_column(String(255))
+    description: Mapped[str] = mapped_column(String(255), nullable=True)
 
     transactions: Mapped[list["Transaction"]] = relationship(
         "Transaction", back_populates="portfolio", cascade="all, delete-orphan"
