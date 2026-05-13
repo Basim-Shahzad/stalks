@@ -6,8 +6,8 @@ export const useAuth = {
    signup: async (signupData: { name: string; email: string; password: string; isActive: true }) => {
       const { data: signupResData } = await api.post<User>("/auth/register", signupData);
 
-      const { data: loginResData } = await api.post<Tokens>("/auth/login/", {
-         name: signupData.name,
+      const { data: loginResData } = await api.post<Tokens>("/auth/login", {
+         email: signupData.email,
          password: signupData.password,
       });
 
@@ -16,27 +16,27 @@ export const useAuth = {
    },
 
    login: async (loginData: { email: string; password: string }) => {
-      const { data: loginResData, status } = await api.post<Tokens>("/auth/login/", loginData);
+      const { data: loginResData, status } = await api.post<Tokens>("/auth/login", loginData);
 
       if (status !== 200) {
          return null;
       }
 
-      const { data: meData } = await api.get<User>("/auth/me/");
+      const { data: meData } = await api.get<User>("/auth/me");
 
       useAuthStore.getState().login(meData, loginResData.accessToken);
       return meData;
    },
 
    logout: async () => {
-      const logoutRes = await api.post("/auth/logout/", {}, { withCredentials: true });
+      const logoutRes = await api.post("/auth/logout", {}, { withCredentials: true });
       if (logoutRes.status === 204) {
          useAuthStore.getState().logout();
       }
    },
 
    me: async () => {
-      const { data: meData } = await api.get<User>("/auth/me/");
+      const { data: meData } = await api.get<User>("/auth/me");
       // single atomic update — user and isInitialized set together, one render
       useAuthStore.getState().setAuthInitialized(meData);
       return meData;

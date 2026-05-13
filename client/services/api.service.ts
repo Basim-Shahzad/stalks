@@ -36,6 +36,11 @@ api.interceptors.response.use(
          _skipRefresh?: boolean;
       };
 
+      const accessToken = useAuthStore.getState().accessToken;
+      if (!accessToken) {
+         return Promise.reject(error);
+      }
+
       if (error.response?.status !== 401 || originalRequest._retry || originalRequest._skipRefresh) {
          return Promise.reject(error);
       }
@@ -52,7 +57,12 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-         const { data } = await axios.post<Tokens>(`${API_BASE}/auth/refresh/`, {}, { withCredentials: true });
+         const { data } = await axios.post<Tokens>(`${API_BASE}/auth/refresh`, {}, {
+            withCredentials: true,
+            // ✅ tell the interceptor to ignore 401s on this request
+            _skipRefresh: true,
+         } as InternalAxiosRequestConfig & { _skipRefresh?: boolean });
+
          useAuthStore.getState().setAccessToken(data.accessToken);
          processQueue(null);
          return api(originalRequest);
