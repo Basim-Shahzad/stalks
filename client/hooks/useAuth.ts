@@ -16,13 +16,13 @@ export const useAuth = {
    },
 
    login: async (loginData: { email: string; password: string }) => {
-      const { data: loginResData, status } = await api.post<Tokens>("/auth/login", loginData);
+      const { data: loginResData } = await api.post<Tokens>("/auth/login", loginData);
 
-      if (status !== 200) {
-         return null;
-      }
-
-      const { data: meData } = await api.get<User>("/auth/me");
+      const { data: meData } = await api.get<User>("/auth/me", {
+         headers: {
+            Authorization: `Bearer ${loginResData.accessToken}`,
+         },
+      });
 
       useAuthStore.getState().login(meData, loginResData.accessToken);
       return meData;
