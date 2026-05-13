@@ -20,7 +20,7 @@ const LoginPage = () => {
       mutationFn: (data: { email: string; password: string }) => useAuth.login(data),
       mutationKey: ["login"],
       onSuccess: () => {
-         router.push("/dashboard");
+         router.push("/portfolio");
       },
    });
 

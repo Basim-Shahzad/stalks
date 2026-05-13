@@ -21,7 +21,7 @@ const Signup = () => {
       mutationFn: (data: { name: string; email: string; password: string; isActive: true }) => useAuth.signup(data),
       mutationKey: ["signup"],
       onSuccess: () => {
-         router.push("/dashboard");
+         router.push("/portfolio");
       },
    });
 
