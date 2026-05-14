@@ -5,17 +5,11 @@ from models.mixins.TimestampMixin import TimestampMixin
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, ForeignKey, Enum, event, UUID
 from typing import TYPE_CHECKING
+from .enums import ExchangeType
 
 if TYPE_CHECKING:
     from .User import User
     from .Transaction import Transaction
-
-
-class ExchangeType(enum.Enum):
-    PSX = "PSX"
-    NASDAQ = "NASDAQ"
-    NYSE = "NYSE"
-    TADAWUL = "TADAWUL"
 
 
 class Portfolio(TimestampMixin, Base):

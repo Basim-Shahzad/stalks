@@ -1,6 +1,8 @@
 import enum
 import uuid
 from datetime import date
+from decimal import Decimal
+from sqlalchemy import Numeric
 from db.database import Base
 from models.mixins.TimestampMixin import TimestampMixin
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -34,12 +36,12 @@ class Transaction(TimestampMixin, Base):
     symbol: Mapped[str] = mapped_column(String(20), nullable=False)
     sector: Mapped[str] = mapped_column(String(150), nullable=True)
     side: Mapped[Side] = mapped_column(Enum(Side), nullable=False)
-    quantity: Mapped[float] = mapped_column(Numeric(18, 2), nullable=False)
-    rate: Mapped[float] = mapped_column(Numeric(18, 2), nullable=False)
-    commission: Mapped[float] = mapped_column(Numeric(10, 2), default=0.0)
-    taxes: Mapped[float] = mapped_column(Numeric(10, 2), default=0.0)
-    charges: Mapped[float] = mapped_column(Numeric(10, 2), default=0.0)
-    total_amount: Mapped[float] = mapped_column(Numeric(18, 2), nullable=False)
+    quantity: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    rate: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    commission: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal("0.00"))
+    taxes: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal("0.00"))
+    charges: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal("0.00"))
+    total_amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
 
     def __repr__(self):
         return f"<Transaction {self.symbol} - {self.total_amount}>"
