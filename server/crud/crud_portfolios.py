@@ -55,11 +55,9 @@ def create_portfolio(
 def get_portfolio_by_id(db: Session, portfolio_id: UUID) -> Portfolio | None:
     """Fetch a single portfolio by their UUID."""
     try:
-        query = (
-            select(Portfolio).where(Portfolio.id == portfolio_id)
-        ).scalar_one_or_none()
+        query = select(Portfolio).where(Portfolio.id == portfolio_id)
 
-        result = db.execute(query)
+        result = db.execute(query).scalar_one_or_none()
         return result
 
     except SQLAlchemyError as e:
