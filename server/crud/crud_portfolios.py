@@ -50,3 +50,18 @@ def create_portfolio(
     db.commit()
     db.refresh(db_portfolio)
     return db_portfolio
+
+
+def get_portfolio_by_id(db: Session, portfolio_id: UUID) -> Portfolio | None:
+    """Fetch a single portfolio by their UUID."""
+    try:
+        query = (
+            select(Portfolio).where(Portfolio.id == portfolio_id)
+        ).scalar_one_or_none()
+
+        result = db.execute(query)
+        return result
+
+    except SQLAlchemyError as e:
+        # TODO: raise a more specific exception
+        raise
