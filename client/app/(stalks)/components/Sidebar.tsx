@@ -24,13 +24,15 @@ export default function Sidebar() {
    const isActive = (id: string) => pathname === `/${id}` || (id === "dashboard" && pathname === "/");
 
    return (
-      <aside className="h-screen w-full flex flex-col shrink-0 z-10 border-r border-[#1e2023] bg-black">
-         {/* Logo Section */}
-         <div className="flex items-center gap-2.5 p-3 pb-4 border-b border-[#1e2023]">
-            <Image src="/logo.png" alt="logo" width={32} height={32} priority={true} />
-            <div>
-               <div className="font-extrabold text-lg tracking-tight text-[#ffffff] leading-none">STALKS</div>
-               <div className="mt-0.5 text-[9px] tracking-[2px] text-[#888888]">TRADE · TRACK · WIN</div>
+      <aside className="h-screen w-full flex flex-col shrink-0 z-10 bg-[#070707]">
+
+         <div className="px-2 py-4 cursor-pointer flex items-center gap-2 hover:bg-gray-900/25">
+            <Avatar className="bg-black" color="default">
+               <Avatar.Fallback className="bg-green-500">{getInitials(user!.name)}</Avatar.Fallback>
+            </Avatar>
+            <div className="select-none">
+               <span className="text-white">{user?.name}</span>
+               <div className="text-[9px] text-[#888888]">{user?.email}</div>
             </div>
          </div>
 
@@ -67,18 +69,7 @@ export default function Sidebar() {
             })}
          </nav>
 
-         <Separator className="bg-white/20" />
-
          {/* Bottom Nav */}
-         <div className="px-2 pt-3 pb-4 cursor-pointer flex items-center gap-2 hover:bg-gray-900/25">
-            <Avatar className="bg-black" color="default">
-               <Avatar.Fallback className="bg-green-500">{getInitials(user!.name)}</Avatar.Fallback>
-            </Avatar>
-            <div className="select-none">
-               <span className="text-white">{user?.name}</span>
-               <div className="text-[9px] text-[#888888]">{user?.email}</div>
-            </div>
-         </div>
       </aside>
    );
 }
