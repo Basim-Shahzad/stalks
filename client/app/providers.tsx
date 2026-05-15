@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAuthStore } from "@/stores/useAuthStore";
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 
 function AuthInitializer() {
    const hasFetched = useRef(false);
@@ -37,6 +38,7 @@ export default function Providers({ children }: { children: ReactNode }) {
       <QueryClientProvider client={queryClient}>
          <AuthInitializer />
          {children}
+         <ReactQueryDevtools  />
       </QueryClientProvider>
    );
 }
