@@ -34,7 +34,7 @@ class PortfolioListItemSchema(Base):
 
 class PortfolioCreateSchema(Base):
 
-    exchange: ExchangeType = ExchangeType.NYSE
+    exchange: ExchangeType = ExchangeType.US
     currency: str = "USD"
     name: str
     description: str

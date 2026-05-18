@@ -92,6 +92,7 @@ _CACHE_FILE = (
     / "backend-fastapi"
     / "core"
     / "data"
+    / "cache"
     / "sector_cache.json"
 )
 _CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -733,7 +734,9 @@ if __name__ == "__main__":
     import sys
 
     if len(sys.argv) < 2:
-        print("Usage: python psx_statement_parsing_service.py <statement.pdf> [output.json]")
+        print(
+            "Usage: python psx_statement_parsing_service.py <statement.pdf> [output.json]"
+        )
         sys.exit(1)
 
     pdf_file = sys.argv[1]

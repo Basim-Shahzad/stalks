@@ -3,6 +3,5 @@ import enum
 
 class ExchangeType(enum.Enum):
     PSX = "PSX"
-    NASDAQ = "NASDAQ"
-    NYSE = "NYSE"
+    US = "US"
     TADAWUL = "TADAWUL"

@@ -6,6 +6,7 @@ from models.Transaction import Transaction
 from models.RefreshToken import RefreshToken
 from db.database import Base, engine
 from api.v1.api import api_router
+from core.config import settings
 
 Base.metadata.create_all(bind=engine)
 
@@ -25,3 +26,8 @@ app.add_middleware(
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
+
+
+@app.get("/status")
+async def status():
+    return {"status": "ok", "version": "1.0.0", "environment": settings.app_env}

@@ -39,7 +39,6 @@ def receive_set(target, value, oldvalue, initiator):
     currency_map = {
         ExchangeType.PSX: "PKR",
         ExchangeType.TADAWUL: "SAR",
-        ExchangeType.NASDAQ: "USD",
-        ExchangeType.NYSE: "USD",
+        ExchangeType.US: "USD",
     }
     target.currency = currency_map.get(value, "USD")
