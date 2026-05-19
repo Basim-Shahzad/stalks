@@ -15,10 +15,11 @@ from contextlib import asynccontextmanager
 from services.market_data_service import _is_first_run, _background_fetch
 from dependencies.market_data import jobs as sched
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("App starting up…")
+
+    Base.metadata.create_all(bind=engine)
 
     if _is_first_run():
         logger.info(
@@ -33,9 +34,7 @@ async def lifespan(app: FastAPI):
 
     sched.start()
 
-    yield
-
-    Base.metadata.create_all(bind=engine)
+    yield  # ----------------- APP IS RUNNING HERE -----------------
 
     sched.stop()
     logger.info("App shut down.")
