@@ -23,7 +23,7 @@ from __future__ import annotations
 from bs4 import BeautifulSoup
 from datetime import date
 import json
-import logging
+from core.logger import logger
 import re
 import time
 from pathlib import Path
@@ -73,16 +73,6 @@ PSX_SECTORS = [
     "VANASPATI & ALLIED INDUSTRIES",
     "WOOLLEN",
 ]
-
-# ---------------------------------------------------------------------------
-# Logging
-# ---------------------------------------------------------------------------
-logger = logging.getLogger("munir_khanani_parser")
-logger.setLevel(logging.INFO)
-if not logger.handlers:
-    _h = logging.StreamHandler()
-    _h.setFormatter(logging.Formatter("%(levelname)s  %(name)s: %(message)s"))
-    logger.addHandler(_h)
 
 # ---------------------------------------------------------------------------
 # Persistent sector cache
@@ -741,8 +731,7 @@ if __name__ == "__main__":
 
     pdf_file = sys.argv[1]
     json_file = sys.argv[2] if len(sys.argv) > 2 else "transactions.json"
-
-    logging.basicConfig(level=logging.INFO)
+    
     result = process_statement(pdf_file)
 
     with open(json_file, "w", encoding="utf-8") as f:

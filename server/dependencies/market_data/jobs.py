@@ -3,15 +3,12 @@ scheduler.py — APScheduler setup for nightly incremental updates.
 Runs at DAILY_JOB_HOUR:DAILY_JOB_MINUTE in SCHEDULER_TIMEZONE (AST by default).
 """
 
-import logging
-
+from core.logger import logger
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 from .settings import DAILY_JOB_HOUR, DAILY_JOB_MINUTE, SCHEDULER_TIMEZONE
 from services.market_data_service import run_all_exchanges
-
-logger = logging.getLogger(__name__)
 
 _scheduler = BackgroundScheduler(timezone=SCHEDULER_TIMEZONE)
 
