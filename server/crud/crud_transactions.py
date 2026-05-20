@@ -4,6 +4,8 @@ from uuid import UUID
 from datetime import datetime
 from models.Portfolio import Portfolio
 from models.Transaction import Transaction
+from models.enums import ExchangeType
+from models.WatchedSymbol import WatchedSymbol
 from schemas.TransactionsSchema import (
     TransactionsListItemSchema,
     TransactionCreateSchema,
@@ -14,6 +16,20 @@ from sqlalchemy.exc import SQLAlchemyError
 # ---------------------------------------------------------------------------
 # Transactions CRUD
 # ---------------------------------------------------------------------------
+
+
+def _ensure_symbol_watched(db: Session, symbol: str, exchange: ExchangeType) -> None:
+    """Add to WatchedSymbol if not already there."""
+    exists = db.execute(
+        select(WatchedSymbol).where(
+            WatchedSymbol.symbol == symbol,
+            WatchedSymbol.exchange == exchange,
+        )
+    ).scalar_one_or_none()
+
+    if not exists:
+        db.add(WatchedSymbol(symbol=symbol, exchange=exchange))
+        db.commit()
 
 
 def get_transactions(
@@ -45,12 +61,17 @@ def get_transactions(
 
 
 def create_transaction(
-    db: Session, transaction_in: TransactionCreateSchema
+    db: Session, portfolio: Portfolio, transaction_in: TransactionCreateSchema
 ) -> Transaction:
     """Creates a new transaction in the database."""
     transaction_data = transaction_in.model_dump()
+    transaction_data["portfolio_id"] = portfolio.id
+
     db_transaction = Transaction(**transaction_data)
     db.add(db_transaction)
     db.commit()
     db.refresh(db_transaction)
+
+    _ensure_symbol_watched(db, transaction_in.symbol, portfolio.exchange)
+
     return db_transaction

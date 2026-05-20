@@ -45,8 +45,7 @@ class TransactionsListItemSchema(Base):
 
 
 class TransactionCreateSchema(Base):
-    portfolio_id: uuid.UUID
-
+    
     transaction_date: date
     company: str
     symbol: str
