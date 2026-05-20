@@ -1,33 +1,41 @@
 import time
 from datetime import date, timedelta
+from core.logger import logger
 import threading
 from typing import Optional
-from dependencies.market_data.settings import DATA_ROOT
 
 import pandas as pd
 import yfinance as yf
 
-from dependencies.market_data.settings import (
+from dependencies.market_data.config import (
     BATCH_DELAY_SECONDS,
     BATCH_SIZE,
     EXCHANGES,
     INITIAL_PERIOD,
     RETRY_ATTEMPTS,
     RETRY_DELAY_SECONDS,
+    DATA_ROOT
 )
 from dependencies.market_data.data_store import get_last_date, save
 
+_shutdown_event = threading.Event()
 
 # ─────────────────────────────────────────────
 # Internal helpers
 # ─────────────────────────────────────────────
+
+def stop_background_fetch() -> None:
+    """Signal any running fetch to stop after its current ticker."""
+    _shutdown_event.set()
 
 def _yf_symbol(exchange_key: str, base_ticker: str) -> str:
     """Append the exchange suffix to produce a yfinance-compatible symbol."""
     return base_ticker + EXCHANGES[exchange_key]["suffix"]
 
 
-def _fetch_single(yf_symbol: str, start: str | None = None, period: str | None = None) -> pd.DataFrame | None:
+def _fetch_single(
+    yf_symbol: str, start: str | None = None, period: str | None = None
+) -> pd.DataFrame | None:
     """
     Download OHLCV data for one symbol.
     Retries up to RETRY_ATTEMPTS times on failure.
@@ -40,7 +48,7 @@ def _fetch_single(yf_symbol: str, start: str | None = None, period: str | None =
                 kwargs["period"] = period
             elif start:
                 kwargs["start"] = start
-                kwargs["end"]   = (date.today() + timedelta(days=1)).isoformat()
+                kwargs["end"] = (date.today() + timedelta(days=1)).isoformat()
 
             ticker = yf.Ticker(yf_symbol)
             df = ticker.history(**kwargs)
@@ -52,7 +60,7 @@ def _fetch_single(yf_symbol: str, start: str | None = None, period: str | None =
             # Normalize index timezone → tz-naive dates
             if df.index.tz is not None:
                 df.index = df.index.tz_localize(None)
-            df.index = df.index.normalize()   # strip time component
+            df.index = df.index.normalize()  # strip time component
 
             return df
 
@@ -66,6 +74,7 @@ def _fetch_single(yf_symbol: str, start: str | None = None, period: str | None =
 # ─────────────────────────────────────────────
 # Public API
 # ─────────────────────────────────────────────
+
 
 def fetch_initial(exchange_key: str, base_ticker: str) -> None:
     """
@@ -89,7 +98,7 @@ def fetch_incremental(exchange_key: str, base_ticker: str) -> None:
 
     # Start from the day AFTER the last stored candle
     start_str = (last_date + timedelta(days=1)).strftime("%Y-%m-%d")
-    today_str  = date.today().isoformat()
+    today_str = date.today().isoformat()
 
     if start_str > today_str:
         return
@@ -111,12 +120,19 @@ def run_full_exchange_fetch(exchange_key: str, incremental: bool = False) -> dic
         Summary dict with counts of success / skipped / failed tickers.
     """
     tickers = EXCHANGES[exchange_key]["tickers"]
-    total   = len(tickers)
+    total = len(tickers)
     results = {"exchange": exchange_key, "total": total, "success": 0, "failed": 0}
 
     mode = "incremental" if incremental else "initial"
 
     for batch_start in range(0, total, BATCH_SIZE):
+
+        if _shutdown_event.is_set():
+            logger.info(
+                "Shutdown requested — stopping fetch early at batch %d", batch_start
+            )
+            break
+
         batch = tickers[batch_start : batch_start + BATCH_SIZE]
 
         for base_ticker in batch:
@@ -131,7 +147,9 @@ def run_full_exchange_fetch(exchange_key: str, incremental: bool = False) -> dic
 
         # Pause between batches to be polite to yfinance
         if batch_start + BATCH_SIZE < total:
-            time.sleep(BATCH_DELAY_SECONDS)
+            # time.sleep(BATCH_DELAY_SECONDS)
+            _shutdown_event.wait(timeout=BATCH_DELAY_SECONDS)
+
     return results
 
 
@@ -162,7 +180,9 @@ def _background_fetch(incremental: bool, exchange_key: Optional[str] = None) -> 
         _fetch_status["last_result"] = None
         try:
             if exchange_key:
-                results = [run_full_exchange_fetch(exchange_key, incremental=incremental)]
+                results = [
+                    run_full_exchange_fetch(exchange_key, incremental=incremental)
+                ]
             else:
                 results = run_all_exchanges(incremental=incremental)
             _fetch_status["last_result"] = results

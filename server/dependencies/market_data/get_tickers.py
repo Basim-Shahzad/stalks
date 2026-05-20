@@ -3,7 +3,7 @@ from sqlalchemy import select
 
 from models.WatchedSymbol import WatchedSymbol
 from models.enums import ExchangeType
-from market_data.settings import EXCHANGES
+from dependencies.market_data.config import EXCHANGES
 
 _EXCHANGE_KEY_MAP: dict[ExchangeType, str] = {
     ExchangeType.PSX: "PSX",

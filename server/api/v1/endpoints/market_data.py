@@ -1,16 +1,19 @@
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Depends
 from fastapi.responses import JSONResponse
-
+from sqlalchemy.orm import Session
 from dependencies.market_data import jobs as sched
 from typing import Optional
-from dependencies.market_data.settings import DATA_ROOT, EXCHANGES
+from dependencies.market_data.config import DATA_ROOT, EXCHANGES
 from dependencies.market_data.data_store import load_existing
 from services.market_data_service import _background_fetch, _fetch_status
+from db.database import get_db
+from dependencies.market_data.get_tickers import get_merged_exchanges
+from dependencies.market_data import config as market_settings
 
 router = APIRouter()
 
 
-@router.get("/data/status", tags=["Info"])
+@router.get("/data/status")
 def status():
     stored = {}
     for key, cfg in EXCHANGES.items():
@@ -25,7 +28,7 @@ def status():
     }
 
 
-@router.get("/exchanges", tags=["Info"])
+@router.get("/exchanges")
 def exchanges():
     return {
         key: {
@@ -38,7 +41,7 @@ def exchanges():
     }
 
 
-@router.post("/fetch/initial", tags=["Fetch"])
+@router.post("/fetch/initial")
 def trigger_initial_fetch(
     background_tasks: BackgroundTasks,
     exchange: Optional[str] = None,
@@ -64,7 +67,7 @@ def trigger_initial_fetch(
     }
 
 
-@router.post("/fetch/incremental", tags=["Fetch"])
+@router.post("/fetch/incremental")
 def trigger_incremental_fetch(
     background_tasks: BackgroundTasks,
     exchange: Optional[str] = None,
@@ -90,7 +93,7 @@ def trigger_incremental_fetch(
     }
 
 
-@router.get("/data/{exchange}/{ticker}", tags=["Data"])
+@router.get("/data/{exchange}/{ticker}")
 def get_ticker_data(
     exchange: str,
     ticker: str,
@@ -124,3 +127,13 @@ def get_ticker_data(
             .to_dict(orient="records"),
         }
     )
+
+
+@router.post("/tickers/reload")
+def reload_tickers(
+    db: Session = Depends(get_db),
+):
+    """Re-read WatchedSymbol table and update EXCHANGES in memory."""
+    merged = get_merged_exchanges(db)
+    market_settings.EXCHANGES.update(merged)
+    return {k: len(v["tickers"]) for k, v in merged.items()}
