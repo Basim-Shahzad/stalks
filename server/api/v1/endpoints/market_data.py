@@ -1,4 +1,4 @@
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Depends
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Depends, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from dependencies.market_data import jobs as sched
@@ -9,12 +9,20 @@ from services.market_data_service import _background_fetch, _fetch_status
 from db.database import get_db
 from dependencies.market_data.get_tickers import get_merged_exchanges
 from dependencies.market_data import config as market_settings
+from schemas.MarketDataSchema import (
+    DataStatusResponse,
+    FetchTriggerResponse,
+    ExchangeInfo,
+    TickerDataResponse,
+)
 
 router = APIRouter()
 
 
-@router.get("/data/status")
-def status():
+@router.get(
+    "/data/status", response_model=DataStatusResponse, status_code=status.HTTP_200_OK
+)
+def status_market_data():
     stored = {}
     for key, cfg in EXCHANGES.items():
         folder = DATA_ROOT / cfg["folder"]
@@ -28,7 +36,9 @@ def status():
     }
 
 
-@router.get("/exchanges")
+@router.get(
+    "/exchanges", response_model=dict[str, ExchangeInfo], status_code=status.HTTP_200_OK
+)
 def exchanges():
     return {
         key: {
@@ -41,7 +51,11 @@ def exchanges():
     }
 
 
-@router.post("/fetch/initial")
+@router.post(
+    "/fetch/initial",
+    response_model=FetchTriggerResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 def trigger_initial_fetch(
     background_tasks: BackgroundTasks,
     exchange: Optional[str] = None,
@@ -67,7 +81,11 @@ def trigger_initial_fetch(
     }
 
 
-@router.post("/fetch/incremental")
+@router.post(
+    "/fetch/incremental",
+    response_model=FetchTriggerResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 def trigger_incremental_fetch(
     background_tasks: BackgroundTasks,
     exchange: Optional[str] = None,
@@ -93,7 +111,11 @@ def trigger_incremental_fetch(
     }
 
 
-@router.get("/data/{exchange}/{ticker}")
+@router.get(
+    "/data/{exchange}/{ticker}",
+    response_model=TickerDataResponse,
+    status_code=status.HTTP_200_OK,
+)
 def get_ticker_data(
     exchange: str,
     ticker: str,
@@ -129,7 +151,11 @@ def get_ticker_data(
     )
 
 
-@router.post("/tickers/reload")
+@router.post(
+    "/tickers/reload",
+    response_model=dict[str, int],
+    status_code=status.HTTP_201_CREATED,
+)
 def reload_tickers(
     db: Session = Depends(get_db),
 ):
