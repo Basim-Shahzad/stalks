@@ -1,22 +1,27 @@
-"""
-scheduler.py — APScheduler setup for nightly incremental updates.
-Runs at DAILY_JOB_HOUR:DAILY_JOB_MINUTE in SCHEDULER_TIMEZONE (AST by default).
-"""
-
 from core.logger import logger
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
-from .settings import DAILY_JOB_HOUR, DAILY_JOB_MINUTE, SCHEDULER_TIMEZONE
+from db.database import SessionLocal
+from dependencies.market_data import config as market_settings
+from dependencies.market_data.get_tickers import get_merged_exchanges
 from services.market_data_service import run_all_exchanges
 
-_scheduler = BackgroundScheduler(timezone=SCHEDULER_TIMEZONE)
+_scheduler = BackgroundScheduler(timezone=market_settings.SCHEDULER_TIMEZONE)
 
 
 def _nightly_job() -> None:
     logger.info(
         "Nightly scheduler triggered — running incremental fetch for all exchanges."
     )
+
+    db = SessionLocal()
+    try:
+        merged = get_merged_exchanges(db)
+        market_settings.EXCHANGES.update(merged)
+    finally:
+        db.close()
+
     results = run_all_exchanges(incremental=True)
     for r in results:
         logger.info(
@@ -27,17 +32,17 @@ def _nightly_job() -> None:
 def start() -> None:
     """Start the background scheduler. Call once at app startup."""
     trigger = CronTrigger(
-        hour=DAILY_JOB_HOUR,
-        minute=DAILY_JOB_MINUTE,
-        timezone=SCHEDULER_TIMEZONE,
+        hour=market_settings.DAILY_JOB_HOUR,
+        minute=market_settings.DAILY_JOB_MINUTE,
+        timezone=market_settings.SCHEDULER_TIMEZONE,
     )
     _scheduler.add_job(_nightly_job, trigger, id="nightly_fetch", replace_existing=True)
     _scheduler.start()
     logger.info(
         "Scheduler started — nightly job at %02d:%02d %s",
-        DAILY_JOB_HOUR,
-        DAILY_JOB_MINUTE,
-        SCHEDULER_TIMEZONE,
+        market_settings.DAILY_JOB_HOUR,
+        market_settings.DAILY_JOB_MINUTE,
+        market_settings.SCHEDULER_TIMEZONE,
     )
 
 
