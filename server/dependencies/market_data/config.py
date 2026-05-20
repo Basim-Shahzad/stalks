@@ -1,8 +1,3 @@
-"""
-config.py — Central configuration for the stock data fetcher.
-Change DATA_ROOT to move where all CSVs are stored.
-"""
-
 from pathlib import Path
 import pytz
 
@@ -35,4 +30,20 @@ RETRY_DELAY_SECONDS = 5.0  # Wait between retries
 #   suffix   → appended to raw ticker symbols (empty string for US)
 #   tickers  → list of base ticker symbols (without suffix)
 # ─────────────────────────────────────────────
-EXCHANGES: dict[str, dict] = {}
+EXCHANGES: dict[str, dict] = {
+    "PSX": {
+        "folder": "psx",
+        "suffix": ".KA",
+        "tickers": [],
+    },
+    "US": {
+        "folder": "us",
+        "suffix": "",
+        "tickers": [],
+    },
+    "SAUDI": {
+        "folder": "saudi",
+        "suffix": ".SR",
+        "tickers": [],
+    },
+}

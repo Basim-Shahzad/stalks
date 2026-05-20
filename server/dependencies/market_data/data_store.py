@@ -4,7 +4,7 @@ data_store.py — Handles all CSV read/write operations.
 
 from pathlib import Path
 import pandas as pd
-from .settings import DATA_ROOT, EXCHANGES
+from .config import DATA_ROOT, EXCHANGES
 
 # OHLCV columns we care about (yfinance column names)
 OHLCV_COLS = ["Open", "High", "Low", "Close", "Volume"]
