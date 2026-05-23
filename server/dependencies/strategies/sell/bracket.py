@@ -21,11 +21,11 @@ class BracketStrategy(Strategy):
         self,
         symbols: list[str],
         transactions: list[Transaction],
-        trigger_pct: float = 1.3,
-        account_id: int = 110310,
-        upper_sell_bracket_pct: float = 1.02,  # means 2%
-        stop_price_pct: float = 0.95,  # means -5%
-        sell_volume_pct: float = 0.25,  # means 25%
+        trigger_pct: float,
+        account_id: int,
+        upper_sell_bracket_pct: float,
+        stop_price_pct: float,
+        sell_volume_pct: float,
     ):
         super().__init__(symbols, transactions)
         self.trigger_pct = trigger_pct
@@ -38,7 +38,8 @@ class BracketStrategy(Strategy):
     def current_stocks_data(self) -> list[dict]:
         return self.get_psx_data()
 
-    def filter_triggered_stocks(self) -> tuple[list[Transaction], list[dict]]:
+    @cached_property
+    def _triggered(self) -> tuple[list[Transaction], list[dict]]:
         triggered_tsxs: list[Transaction] = []
         triggered_stocks: list[dict] = []
 
@@ -51,25 +52,25 @@ class BracketStrategy(Strategy):
 
         return triggered_tsxs, triggered_stocks
 
-    def format_transactions(self) -> list[dict]:
+    def _compute_sell_volume(self, tsx: Transaction) -> int:
+        return int(
+            (tsx.quantity * Decimal(str(self.sell_volume_pct))).to_integral_value(
+                rounding=ROUND_HALF_UP
+            )
+        )
+
+    def format_limit_orders(self) -> list[dict]:
         orders = []
-        triggered_tsxs, triggered_stocks = self.filter_triggered_stocks()
+        triggered_tsxs, triggered_stocks = self._triggered
 
         for tsx, stock in zip(triggered_tsxs, triggered_stocks):
-            current_price = stock["current"]
-            upper_price = round(
-                current_price * Decimal(str(self.upper_sell_bracket_pct)), 2
-            )
-            stop_price = round(current_price * Decimal(str(self.stop_price_pct)), 2)
-            sell_volume = int(
-                (tsx.quantity * Decimal(str(self.sell_volume_pct))).to_integral_value(
-                    rounding=ROUND_HALF_UP
-                )
-            )
-
+            sell_volume = self._compute_sell_volume(tsx)
             if sell_volume < 1:
                 continue
 
+            upper_price = round(
+                stock["current"] * Decimal(str(self.upper_sell_bracket_pct)), 2
+            )
             orders.append(
                 {
                     "Account": self.account_id,
@@ -81,6 +82,19 @@ class BracketStrategy(Strategy):
                     "Limit Price": upper_price,
                 }
             )
+
+        return orders
+
+    def format_slo_orders(self) -> list[dict]:
+        orders = []
+        triggered_tsxs, triggered_stocks = self._triggered
+
+        for tsx, stock in zip(triggered_tsxs, triggered_stocks):
+            sell_volume = self._compute_sell_volume(tsx)
+            if sell_volume < 1:
+                continue
+
+            stop_price = round(stock["current"] * Decimal(str(self.stop_price_pct)), 2)
             orders.append(
                 {
                     "Account": self.account_id,
@@ -95,16 +109,16 @@ class BracketStrategy(Strategy):
 
         return orders
 
-    def to_csv_basket(self):
-
-        orders = self.format_transactions()
+    def _to_csv(self, orders: list[dict]) -> str:
         output = io.StringIO()
-
         writer = csv.DictWriter(output, fieldnames=self.HEADERS)
         writer.writeheader()
-
         for order in orders:
-            row = {header: order.get(header, "") for header in self.HEADERS}
-            writer.writerow(row)
-
+            writer.writerow({header: order.get(header, "") for header in self.HEADERS})
         return output.getvalue()
+
+    def to_limit_csv_basket(self) -> str:
+        return self._to_csv(self.format_limit_orders())
+
+    def to_slo_csv_basket(self) -> str:
+        return self._to_csv(self.format_slo_orders())
