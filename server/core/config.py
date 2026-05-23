@@ -18,8 +18,7 @@ class Settings(BaseSettings):
     refresh_token_expire_days: int = 30
     app_env: str
 
-    github_token: SecretStr
-    github_username : str
-    repo_name: str
+    supabase_url: str
+    supabase_key: SecretStr
 
 settings = Settings()

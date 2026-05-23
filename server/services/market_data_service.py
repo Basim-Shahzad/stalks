@@ -14,7 +14,6 @@ from dependencies.market_data.config import (
     INITIAL_PERIOD,
     RETRY_ATTEMPTS,
     RETRY_DELAY_SECONDS,
-    DATA_ROOT
 )
 from dependencies.market_data.data_store import get_last_date, save
 
@@ -24,9 +23,11 @@ _shutdown_event = threading.Event()
 # Internal helpers
 # ─────────────────────────────────────────────
 
+
 def stop_background_fetch() -> None:
     """Signal any running fetch to stop after its current ticker."""
     _shutdown_event.set()
+
 
 def _yf_symbol(exchange_key: str, base_ticker: str) -> str:
     """Append the exchange suffix to produce a yfinance-compatible symbol."""
@@ -166,10 +167,10 @@ _fetch_status: dict = {"running": False, "last_result": None}
 
 
 def _is_first_run() -> bool:
-    """True if no exchange folder contains any CSV yet."""
-    for exchange_key, cfg in EXCHANGES.items():
-        folder = DATA_ROOT / cfg["folder"]
-        if folder.exists() and any(folder.glob("*.csv")):
+    from dependencies.market_data.data_store import list_stored_tickers
+
+    for exchange_key in EXCHANGES:
+        if list_stored_tickers(exchange_key):
             return False
     return True
 

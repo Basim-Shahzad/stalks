@@ -1,52 +1,26 @@
-"""
-data_store.py — Handles all CSV read/write operations.
-"""
-
-from pathlib import Path
+import io
+from core.logger import logger
+from supabase import create_client
+from core.config import settings
 import pandas as pd
-from .config import DATA_ROOT, EXCHANGES
+from .config import EXCHANGES
 
-# OHLCV columns we care about (yfinance column names)
 OHLCV_COLS = ["Open", "High", "Low", "Close", "Volume"]
+BUCKET = "market-data"
 
-
-def _exchange_dir(exchange_key: str) -> Path:
-    """Return (and create if needed) the folder for a given exchange."""
-    folder = EXCHANGES[exchange_key]["folder"]
-    path = DATA_ROOT / folder
-    path.mkdir(parents=True, exist_ok=True)
-    return path
-
-
-def _csv_path(exchange_key: str, ticker_symbol: str) -> Path:
-    """Return the CSV path for a specific ticker."""
-    return _exchange_dir(exchange_key) / f"{ticker_symbol}.csv"
-
-
-def load_existing(exchange_key: str, ticker_symbol: str) -> pd.DataFrame | None:
-    """
-    Load existing CSV data for a ticker.
-    Returns a DataFrame (index = Date) or None if the file doesn't exist.
-    """
-    path = _csv_path(exchange_key, ticker_symbol)
-    if not path.exists():
-        return None
-    try:
-        df = pd.read_csv(path, index_col="Date", parse_dates=True)
-        return df
-    except Exception as exc:
-        return None
+# Log at module load time so you know client was created
+_supabase = create_client(
+    settings.supabase_url,
+    settings.supabase_key.get_secret_value()
+)
+logger.info("Supabase client initialized — bucket: %s", BUCKET)
 
 
 def save(exchange_key: str, ticker_symbol: str, df: pd.DataFrame) -> None:
-    """
-    Persist a DataFrame to the ticker's CSV file.
-    Merges with existing data to avoid duplicates, then saves sorted by date.
-    """
     if df is None or df.empty:
+        logger.warning("save() called with empty df for %s/%s — skipping", exchange_key, ticker_symbol)
         return
 
-    # Keep only OHLCV columns that are present
     cols_present = [c for c in OHLCV_COLS if c in df.columns]
     df = df[cols_present].copy()
 
@@ -58,12 +32,30 @@ def save(exchange_key: str, ticker_symbol: str, df: pd.DataFrame) -> None:
     else:
         combined = df.sort_index()
 
-    path = _csv_path(exchange_key, ticker_symbol)
-    combined.to_csv(path, index=True, index_label="Date")
+    path = f"{EXCHANGES[exchange_key]['folder']}/{ticker_symbol}.csv"
+    csv_bytes = combined.to_csv(index=True, index_label="Date").encode()
+
+    try:
+        _supabase.storage.from_(BUCKET).upload(
+            path, csv_bytes, {"content-type": "text/csv", "upsert": "true"}
+        )
+        logger.debug("Saved %s/%s (%d rows)", exchange_key, ticker_symbol, len(combined))
+    except Exception as e:
+        logger.error("Failed to save %s/%s: %s", exchange_key, ticker_symbol, e)
+
+
+def load_existing(exchange_key: str, ticker_symbol: str) -> pd.DataFrame | None:
+    path = f"{EXCHANGES[exchange_key]['folder']}/{ticker_symbol}.csv"
+    try:
+        response = _supabase.storage.from_(BUCKET).download(path)
+        df = pd.read_csv(io.BytesIO(response), index_col="Date", parse_dates=True)
+        logger.debug("Loaded %s/%s (%d rows)", exchange_key, ticker_symbol, len(df))
+        return df
+    except Exception:
+        return None  # file doesn't exist yet — normal on first run
 
 
 def get_last_date(exchange_key: str, ticker_symbol: str) -> pd.Timestamp | None:
-    """Return the most recent date stored for a ticker, or None."""
     existing = load_existing(exchange_key, ticker_symbol)
     if existing is None or existing.empty:
         return None
@@ -71,6 +63,12 @@ def get_last_date(exchange_key: str, ticker_symbol: str) -> pd.Timestamp | None:
 
 
 def list_stored_tickers(exchange_key: str) -> list[str]:
-    """List ticker symbols that already have CSV files for an exchange."""
-    directory = _exchange_dir(exchange_key)
-    return [p.stem for p in directory.glob("*.csv")]
+    folder = EXCHANGES[exchange_key]["folder"]
+    try:
+        files = _supabase.storage.from_(BUCKET).list(folder)
+        tickers = [f["name"].replace(".csv", "") for f in files]
+        logger.debug("list_stored_tickers(%s) → %d tickers", exchange_key, len(tickers))
+        return tickers
+    except Exception as e:
+        logger.error("Failed to list tickers for %s: %s", exchange_key, e)
+        return []

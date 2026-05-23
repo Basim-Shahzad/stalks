@@ -39,23 +39,10 @@ async def lifespan(app: FastAPI):
     finally:
         db.close()
 
-    try:
-        sched._initialize_and_sync_repo()
-        logger.info("Git repo initialized.")
-    except Exception as e:
-        logger.error(f"Git init failed: {e}")    
-
     if _is_first_run():
-        def _fetch_then_push():
-            _background_fetch(incremental=False)
-            logger.info("Initial fetch complete — pushing to GitHub...")
-            try:
-                sched._initialize_and_sync_repo()  # ensure git is set up first
-                sched._sync_repo_push()
-            except Exception as e:
-                logger.error(f"Initial git push failed: {e}")
-
-        thread = threading.Thread(target=_fetch_then_push, daemon=False)
+        thread = threading.Thread(
+            target=_background_fetch, kwargs={"incremental": False}, daemon=False
+        )
         thread.start()
 
     sched.start()
@@ -65,7 +52,7 @@ async def lifespan(app: FastAPI):
     logger.info("Shutdown started — stopping background fetch...")
     stop_background_fetch()
     if thread is not None:
-        thread.join(timeout=30)
+        thread.join(timeout=300)
     sched.stop()
     logger.info("Shutdown complete.")
 

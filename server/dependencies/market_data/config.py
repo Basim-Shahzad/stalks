@@ -1,15 +1,10 @@
 from pathlib import Path
 import pytz
-from core.config import settings
 
 # ─────────────────────────────────────────────
 # Paths
 # ─────────────────────────────────────────────
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
-DATA_ROOT = BASE_DIR / "tmp" / "stock-storage-dir"  # All exchange folders live here
-REPO_URL = f"https://{settings.github_username}:{settings.github_token.get_secret_value()}@github.com/{settings.github_username}/{settings.repo_name}.git"
-
-
 # ─────────────────────────────────────────────
 # Scheduler
 # ─────────────────────────────────────────────
