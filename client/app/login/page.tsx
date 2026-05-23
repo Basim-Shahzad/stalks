@@ -77,8 +77,8 @@ const LoginPage = () => {
                      variant="tertiary"
                      type="submit"
                      isPending={isPending}
-                     onClick={() => login({ email, password })}>
-                     Log in
+                     onPress={() => login({ email, password })}>
+                     {isPending ? "Logging in..." : "Log in"}
                   </Button>
                </div>
             </div>
