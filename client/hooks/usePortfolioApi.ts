@@ -1,7 +1,7 @@
 import api from "@/services/api.service";
-import type { Portfolio, PortfolioList } from "./portfolios.types";
+import type { Portfolio, PortfolioList } from "../types/portfolios.types";
 
-export const usePortfolio = {
+export const usePortfolioApi = {
    getAll: async () => {
       const { data } = await api.get<PortfolioList>("/portfolios");
       return data;
