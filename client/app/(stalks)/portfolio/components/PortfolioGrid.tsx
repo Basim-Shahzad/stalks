@@ -1,16 +1,11 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { usePortfolio } from "../usePortfolio";
 import PortfolioCard from "./PortfolioCard";
 import { Skeleton } from "@heroui/react";
-import { PortfolioList } from "../portfolios.types";
+import { usePortfolios } from "@/lib/queries/portfolioQueries";
 
 const PortfolioGrid = () => {
-   const { data, isLoading, isError } = useQuery({
-      queryKey: ["portfolios"],
-      queryFn: () => usePortfolio.getAll(),
-   });
+   const { data, isLoading, isError } = usePortfolios();
 
    return (
       <main className="mx-8 my-4">

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Portfolio } from "../portfolios.types";
+import { Portfolio } from "@/types/portfolios.types";
 import { useRouter } from "next/navigation";
 
 type PortfolioCardProps = {
@@ -28,7 +28,7 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ portfolio }) => {
          </div>
 
          {/* Description Body */}
-         <div className="min-h-[60px] mb-8">
+         <div className="min-h-15 mb-8">
             <p className="text-gray-400 text-sm leading-relaxed line-clamp-3">
                {portfolio.description || "No additional details provided for this portfolio."}
             </p>
