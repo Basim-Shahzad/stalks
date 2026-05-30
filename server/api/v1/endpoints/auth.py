@@ -42,7 +42,7 @@ def _set_tokens(response: Response, db: Session, user: User) -> AccessTokenRespo
         secure=True,             # HTTPS only — set False for local dev if needed
         samesite="lax",          # protects against CSRF
         max_age=settings.refresh_token_expire_days * 24 * 60 * 60,
-        path="/api/auth",        # cookie only sent to auth endpoints, not every request
+        path="/api/v1/auth",      # cookie only sent to auth endpoints, not every request
     )
     return AccessTokenResponse(access_token=access_token)
 
@@ -137,7 +137,7 @@ def logout(
         db_token = get_refresh_token(db, refresh_token)
         if db_token and db_token.user_id == current_user.id:
             revoke_refresh_token(db, db_token)
-    response.delete_cookie(key=REFRESH_TOKEN_COOKIE, path="/api/auth")
+    response.delete_cookie(key=REFRESH_TOKEN_COOKIE, path="/api/v1/auth")
 
 
 @router.post("/logout-all", status_code=status.HTTP_204_NO_CONTENT)

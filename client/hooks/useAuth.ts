@@ -1,6 +1,8 @@
 import { useAuthStore } from "@/stores/useAuthStore";
 import api from "@/services/api.service";
 import type { User, Tokens } from "@/types/auth.types";
+import { API_BASE } from "@/constants/config";
+import axios from "axios";
 
 export const useAuth = {
    signup: async (signupData: { name: string; email: string; password: string; isActive: true }) => {
@@ -36,8 +38,22 @@ export const useAuth = {
    },
 
    me: async () => {
+      if (!useAuthStore.getState().accessToken) {
+         try {
+            const { data: refreshData } = await axios.post<{ accessToken: string }>(
+               `${API_BASE}/auth/refresh`,
+               {},
+               { withCredentials: true }, // plain axios — no interceptor
+            );
+            useAuthStore.getState().setAccessToken(refreshData.accessToken);
+         } catch {
+            // No valid cookie — stop here, don't call /me
+            useAuthStore.getState().setAuthInitialized(null);
+            return null;
+         }
+      }
+
       const { data: meData } = await api.get<User>("/auth/me");
-      // single atomic update — user and isInitialized set together, one render
       useAuthStore.getState().setAuthInitialized(meData);
       return meData;
    },

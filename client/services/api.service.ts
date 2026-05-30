@@ -1,6 +1,5 @@
 import axios, { AxiosError, create, type AxiosInstance, InternalAxiosRequestConfig } from "axios";
 import { useAuthStore } from "@/stores/useAuthStore";
-import { Tokens } from "@/types/auth.types";
 import { API_BASE } from "@/constants/config";
 
 const api: AxiosInstance = create({
@@ -9,11 +8,7 @@ const api: AxiosInstance = create({
    withCredentials: true,
 });
 
-const isRefreshFailed = () => sessionStorage.getItem("refreshFailed") === "true";
-const setRefreshFailed = () => sessionStorage.setItem("refreshFailed", "true");
-
 let isRefreshing = false;
-let refreshFailed = false;
 let failedQueue: {
    resolve: (value?: unknown) => void;
    reject: (reason?: unknown) => void;
@@ -44,7 +39,7 @@ api.interceptors.response.use(
          error.response?.status !== 401 ||
          originalRequest._retry ||
          originalRequest._skipRefresh ||
-         isRefreshFailed()
+         originalRequest.url?.includes("/auth/refresh")
       ) {
          return Promise.reject(error);
       }
@@ -61,16 +56,15 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-         const { data } = await axios.post<{ accessToken: string }>(
-            `${API_BASE}/auth/refresh`,
-            {}, // empty body, cookie is sent automatically
-            { withCredentials: true, _skipRefresh: true } as any,
-         );
+         const { data } = await axios.post<{ accessToken: string }>(`${API_BASE}/auth/refresh`, {}, {
+            withCredentials: true,
+            _skipRefresh: true,
+         } as any);
+
          useAuthStore.getState().setAccessToken(data.accessToken);
          processQueue(null);
          return api(originalRequest);
       } catch (refreshError) {
-         setRefreshFailed(); // persists across the page reload
          processQueue(refreshError);
          useAuthStore.getState().logout();
          window.location.href = "/login";
