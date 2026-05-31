@@ -28,7 +28,7 @@ export default function Sidebar() {
 
          <div className="px-2 py-4 cursor-pointer flex items-center gap-2 hover:bg-gray-900/25">
             <Avatar className="bg-black" color="default">
-               <Avatar.Fallback className="bg-green-500">{getInitials(user!.name)}</Avatar.Fallback>
+               <Avatar.Fallback className="bg-green-500">{getInitials(user?.name ?? "")}</Avatar.Fallback>
             </Avatar>
             <div className="select-none">
                <span className="text-white">{user?.name}</span>
