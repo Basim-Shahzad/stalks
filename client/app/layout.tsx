@@ -16,6 +16,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
    title: "Stalks",
    description: "by @basimshahzad",
+   icons: {
+      icon: "/logo.png",
+   },
 };
 
 export default function RootLayout({
@@ -25,8 +28,15 @@ export default function RootLayout({
 }>) {
    return (
       <Providers>
-         <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-            <body className="min-h-full flex flex-col">{children}</body>
+         <html
+            lang="en"
+            className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
+            data-theme="dark"
+            suppressHydrationWarning
+         >
+            <body suppressHydrationWarning className="min-h-full flex flex-col">
+               {children}
+            </body>
          </html>
       </Providers>
    );
