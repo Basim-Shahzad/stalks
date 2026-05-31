@@ -1,5 +1,5 @@
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, Response, Cookie, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from db.database import get_db
 from schemas.TransactionsSchema import (
@@ -23,18 +23,12 @@ router = APIRouter()
     status_code=status.HTTP_200_OK,
 )
 def get_transactions_list(
-    portfolio_id: uuid.UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
+    portfolios: list[uuid.UUID] = Query(default=[]),
+    sides: list[str] = Query(default=[]),
 ):
-
-    portfolio = (
-        db.query(Portfolio).filter_by(id=portfolio_id, user_id=current_user.id).first()
-    )
-    if not portfolio:
-        raise HTTPException(status_code=404, detail="Portfolio not found")
-
-    transactions = get_transactions(db, portfolio_id)
+    transactions = get_transactions(db, current_user.id, portfolios, sides)
     return transactions
 
 

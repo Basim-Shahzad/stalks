@@ -33,30 +33,41 @@ def _ensure_symbol_watched(db: Session, symbol: str, exchange: ExchangeType) -> 
 
 
 def get_transactions(
-    db: Session, portfolio_id: UUID
+    db: Session,
+    user_id: UUID,
+    portfolios: list[UUID] = [],
+    sides: list[str] = [],
 ) -> list[TransactionsListItemSchema]:
-    """
-    Fetch all transactions for a specific Portfolio.
+    """_summary_
 
     Args:
-        db: The database session.
-        portfolio_id: The unique identifier of the portfolio.
+        db (Session): _description_
+        user_id (UUID): _description_
+        portfolios (list[UUID], optional): _description_. Defaults to [].
+        sides (list[str], optional): _description_. Defaults to [].
 
     Returns:
-        A list of Transactions of a Portfolio.
+        list[TransactionsListItemSchema]: _description_
     """
     try:
         query = (
             select(Transaction)
-            .where(Transaction.portfolio_id == portfolio_id)
-            .order_by(Transaction.created_at.desc())
+            .join(Portfolio, Transaction.portfolio_id == Portfolio.id)
+            .filter(Portfolio.user_id == user_id)
         )
+
+        if portfolios:
+            query = query.filter(Transaction.portfolio_id.in_(portfolios))
+
+        if sides:
+            query = query.filter(Transaction.side.in_(sides))
+
+        query = query.order_by(Transaction.created_at.desc())
 
         result = db.execute(query)
         return result.scalars().all()
 
     except SQLAlchemyError as e:
-        # TODO: raise a more specific exception
         raise
 
 
