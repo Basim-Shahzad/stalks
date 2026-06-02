@@ -2,8 +2,8 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from server.db.database import get_db
-from server.models.Jobs import Job
+from db.database import get_db
+from models.Jobs import Job
 
 router = APIRouter()
 
