@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Input, Label } from "@heroui/react";
+import { Button, Input, Label, toast } from "@heroui/react";
 import Link from "next/link";
 import Image from "next/image";
 import { GoogleIcon } from "@/components/GoogleIcon";
@@ -21,6 +21,9 @@ const LoginPage = () => {
       mutationKey: ["login"],
       onSuccess: () => {
          router.push("/portfolio");
+      },
+      onError: () => {
+         toast.danger("Invalid Credentials");
       },
    });
 
@@ -69,6 +72,7 @@ const LoginPage = () => {
                         required
                      />
                   </div>
+
                   <Link href="/forgot-password" className="text-center text-sm text-[#22D07A] mt-1 hover:underline">
                      Forgot password?
                   </Link>
@@ -77,7 +81,8 @@ const LoginPage = () => {
                      variant="tertiary"
                      type="submit"
                      isPending={isPending}
-                     onPress={() => login({ email, password })}>
+                     onPress={() => login({ email, password })}
+                  >
                      {isPending ? "Logging in..." : "Log in"}
                   </Button>
                </div>
