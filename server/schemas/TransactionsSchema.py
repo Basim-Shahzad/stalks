@@ -29,34 +29,35 @@ class TransactionsListItemSchema(Base):
 
     id: uuid.UUID
     transaction_date: date
-    company: str
+    company: Optional[str] = None
+    sector: Optional[str] = None
     symbol: str
     sector: str
     side: str
     quantity: Decimal
     rate: Decimal
-    commission: Decimal
-    taxes: Decimal
-    charges: Decimal
-    total_amount: Decimal
+    commission: Optional[Decimal] = None
+    taxes: Optional[Decimal] = None
+    charges: Optional[Decimal] = None
+    total_amount: Optional[Decimal] = None
 
     class Config:
         from_attributes = True
 
 
 class TransactionCreateSchema(Base):
-    
+
     transaction_date: date
-    company: str
+    company: Optional[str] = None
     symbol: str
-    sector: str
+    sector: Optional[str] = None
     side: str
     quantity: Decimal
     rate: Decimal
     commission: Decimal = Decimal("0.00")
     taxes: Decimal = Decimal("0.00")
     charges: Decimal = Decimal("0.00")
-    total_amount: Decimal
+    total_amount: Decimal = Decimal("0.00")
 
 
 class TransactionUpdateSchema(TransactionCreateSchema):

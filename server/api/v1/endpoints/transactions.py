@@ -1,3 +1,4 @@
+import json
 import uuid
 import os
 import tempfile
@@ -22,12 +23,17 @@ from schemas.TransactionsSchema import (
 )
 from crud.crud_transactions import get_transactions, create_transaction
 from models.User import User
+from models.enums import ExchangeType
 from models.Portfolio import Portfolio
 from models.WatchedSymbol import WatchedSymbol
 from dependencies.auth_deps import get_current_active_user
 from dependencies.transactions.jobs import process_mmk_pdf_background
 
 router = APIRouter()
+
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+SERVER_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, "..", "..", ".."))
+cache_file_path = os.path.join(SERVER_ROOT, "core", "data", "cache", "sector_cache.json")
 
 
 @router.get(
@@ -62,9 +68,25 @@ def create_transaction_endpoint(
     if not portfolio:
         raise HTTPException(status_code=404, detail="Portfolio not found")
 
+    if portfolio.exchange == ExchangeType.PSX:
+        with open(cache_file_path, "r", encoding="utf-8") as f:
+            companies_sectors = json.load(f)
+
+        if transaction_in.symbol not in companies_sectors:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid symbol or Not Supported"
+            )
+
+        transaction_in.sector = companies_sectors[transaction_in.symbol]
+        transaction_in.company = (
+            ""  # TODO: add company name to the cache and set it here
+        )
+        transaction_in.total_amount = transaction_in.quantity * transaction_in.rate
+
+        return create_transaction(db, portfolio, transaction_in)
+
     return create_transaction(db, portfolio, transaction_in)
 
-portfolioid = "5990f8b4-ea61-4f1e-a969-74811e48f949"
 
 @router.post(
     "/{portfolio_id}/upload/pdf",
