@@ -11,7 +11,11 @@ const ghostCls =
    "h-6 min-w-0 px-2.5 rounded bg-[#1c1d1f] border border-[#2e3033] text-[#a0a0a0] " +
    "hover:bg-[#222426] hover:text-white hover:border-[#3a3d40] uppercase gap-2 transition-all duration-100";
 
-const HeaderRight = () => {
+type HeaderRightProps = {
+   setIsAddTransactionModalOpen: (open: boolean) => void;
+}
+
+const HeaderRight = ({ setIsAddTransactionModalOpen }: HeaderRightProps) => {
    const [isFilterModalOpen, setIsFilterModalOpen] = useState<boolean>(false);
    const { data: portfolios } = usePortfolios();
    const { filters, activeCount, setFilters, clearFilters } = useTransactionFilters();
@@ -52,6 +56,7 @@ const HeaderRight = () => {
          <Button
             variant="primary"
             className="h-6 min-w-0 px-2.5 rounded bg-[#00ff87] text-[#070707] hover:bg-[#00e87a] uppercase font-semibold gap-2 transition-all duration-100"
+            onClick={() => setIsAddTransactionModalOpen(true)}
          >
             <Plus className="w-2.5 h-2.5 shrink-0" strokeWidth={2.5} />
             Add

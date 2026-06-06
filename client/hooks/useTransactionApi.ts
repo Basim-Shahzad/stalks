@@ -21,7 +21,6 @@ export const useTransactionApi = {
             return search.toString();
          },
       });
-      console.log("raw response:", data); // inspect this
       return data;
    },
    create: async (transaction: Partial<Transaction>, portfolio_id: string) => {
