@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { SlidersHorizontal, Plus } from "lucide-react";
+import { SlidersHorizontal } from "lucide-react";
 import { Button, Popover, PopoverTrigger, PopoverContent } from "@heroui/react";
 import FiltersModal from "./FiltersModal";
 import { usePortfolios } from "@/lib/queries/portfolioQueries";
 import { useTransactionFilters } from "@/lib/hooks/useTransactionFilters";
+import { DropdownButton } from "@/components/action-menu";
+import AddTransactionMmkModal from "./AddTransactionMmkModal";
 
 const ghostCls =
    "h-6 min-w-0 px-2.5 rounded bg-[#1c1d1f] border border-[#2e3033] text-[#a0a0a0] " +
@@ -13,19 +15,19 @@ const ghostCls =
 
 type HeaderRightProps = {
    setIsAddTransactionModalOpen: (open: boolean) => void;
-}
+};
 
 const HeaderRight = ({ setIsAddTransactionModalOpen }: HeaderRightProps) => {
    const [isFilterModalOpen, setIsFilterModalOpen] = useState<boolean>(false);
+   const [isCreateTransactionMmkModalOpen, setIsCreateTransactionMmkModalOpen] = useState<boolean>(false);
    const { data: portfolios } = usePortfolios();
    const { filters, activeCount, setFilters, clearFilters } = useTransactionFilters();
 
+  
+
    return (
       <div className="flex items-center gap-1.5">
-         <Popover
-            isOpen={isFilterModalOpen}
-            onOpenChange={(open) => setIsFilterModalOpen(open)}
-         >
+         <Popover isOpen={isFilterModalOpen} onOpenChange={(open) => setIsFilterModalOpen(open)}>
             <PopoverTrigger>
                <Button variant="ghost" className={ghostCls}>
                   <SlidersHorizontal className="w-2.5 h-2.5 shrink-0" />
@@ -53,14 +55,21 @@ const HeaderRight = ({ setIsAddTransactionModalOpen }: HeaderRightProps) => {
 
          <div className="w-px h-3.5 bg-[#2e3033] mx-0.5" />
 
-         <Button
-            variant="primary"
-            className="h-6 min-w-0 px-2.5 rounded bg-[#00ff87] text-[#070707] hover:bg-[#00e87a] uppercase font-semibold gap-2 transition-all duration-100"
-            onClick={() => setIsAddTransactionModalOpen(true)}
-         >
-            <Plus className="w-2.5 h-2.5 shrink-0" strokeWidth={2.5} />
-            Add
-         </Button>
+         <DropdownButton
+            label="Add"
+            onClick={setIsAddTransactionModalOpen}
+            items={[
+               { label: "Add MMK Transactions PDF", onClick: () => setIsCreateTransactionMmkModalOpen(true) },
+               { label: "Add Transactions CSV", onClick: () => console.log("PDF") },
+            ]}
+         />
+
+         {isCreateTransactionMmkModalOpen && (
+            <AddTransactionMmkModal
+               open={isCreateTransactionMmkModalOpen}
+               setOpen={setIsCreateTransactionMmkModalOpen}
+            />
+         )}
       </div>
    );
 };

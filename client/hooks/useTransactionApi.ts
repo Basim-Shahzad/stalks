@@ -27,4 +27,19 @@ export const useTransactionApi = {
       const { data } = await api.post<Transaction>(`/transactions/${portfolio_id}`, transaction);
       return data;
    },
+   createFromMmkPdf: async (file: File, portfolio_id: string) => {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const { data } = await api.post<{
+         message: string;
+         job_id: string;
+      }>(`/transactions/${portfolio_id}/upload/pdf`, formData, {
+         headers: {
+            // This forces Axios to treat it as a proper form submission
+            "Content-Type": "multipart/form-data",
+         },
+      });
+      return data;
+   },
 };
