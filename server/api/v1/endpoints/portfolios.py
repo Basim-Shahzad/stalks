@@ -1,19 +1,18 @@
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, Response, Cookie, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from db.database import get_db
 from schemas.PortfolioSchema import (
     PortfolioListItemSchema,
     PortfolioSchema,
     PortfolioCreateSchema,
-    PortfolioStatsSchema,
+    PortfolioHoldingsResponse,
 )
 from crud.crud_portfolios import get_portfolios, create_portfolio, get_portfolio_by_id
 from crud.crud_transactions import get_transactions
 from services.psx_service import PSXScraperService
 from models.User import User
 from dependencies.auth_deps import get_current_active_user
-from dependencies.portfolio_deps import get_portfolio_stats
 from dependencies.portfolio.holdings import Holdings
 
 router = APIRouter()
@@ -73,31 +72,9 @@ def get_portfolio(
 
 
 @router.get(
-    "/{portfolio_id}/stats",
-    response_model=PortfolioStatsSchema,
-    status_code=status.HTTP_200_OK,
-)
-def get_portfolio(
-    portfolio_id: uuid.UUID,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
-):
-    portfolio = get_portfolio_by_id(db, portfolio_id)
-
-    if portfolio is None:
-        raise HTTPException(status_code=404, detail="Portfolio not found")
-
-    if portfolio.user_id != current_user.id:
-        raise HTTPException(status_code=404, detail="Portfolio not found")
-
-    stats = get_portfolio_stats(portfolio.transactions, portfolio)
-
-    return stats
-
-
-@router.get(
     "/{portfolio_id}/holdings",
     status_code=status.HTTP_200_OK,
+    response_model=PortfolioHoldingsResponse,
 )
 def get_portfolio(
     portfolio_id: uuid.UUID,

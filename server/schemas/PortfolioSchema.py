@@ -50,33 +50,39 @@ class PortfolioUpdateSchema(PortfolioCreateSchema):
     pass
 
 
-class HoldingSchema(Base):
+class PortfolioHoldings(Base):
     symbol: str
-    quantity: float
-    avg_buy_price: Decimal
-    current_price: Decimal
-    market_value: Decimal
-    unrealized_profit: Decimal
-    unrealized_pct: Decimal
-
-    model_config = {"from_attributes": True}
-
-
-class PortfolioStatsSchema(Base):
-    # Capital
+    company: str
+    sector: str
+    quantity: Decimal
+    avg_cost: Decimal
     total_invested: Decimal
-    portfolio_value: Decimal
+    total_fees: Decimal
+    current_price: Decimal = Decimal("0")
+    ldcp: Decimal = Decimal("0")
+    day_change: Decimal = Decimal("0")
+    day_change_pct: Decimal = Decimal("0")
+    direction: str = ""
+    realised_pnl: Decimal = Field(default=Decimal("0"))
+    market_value: Decimal = Field(default=Decimal("0"))
+    cost_basis: Decimal = Field(default=Decimal("0"))
+    unrealised_pnl: Decimal = Field(default=Decimal("0"))
+    unrealised_pnl_pct: Decimal = Field(default=Decimal("0"))
+    total_pnl: Decimal = Field(default=Decimal("0"))
 
-    # Costs
-    total_costs: Decimal
 
-    # P&L
-    realized_profit: Decimal
-    unrealized_profit: Decimal
-    total_profit: Decimal
-    total_return_pct: Decimal
+class PortfolioSummary(Base):
+    total_invested: Decimal
+    total_market_value: Decimal
+    total_cost_basis: Decimal
+    total_fees: Decimal
+    total_unrealised_pnl: Decimal
+    total_realised_pnl: Decimal
+    total_pnl: Decimal
+    total_pnl_pct: Decimal
+    holdings_count: int
 
-    # Per-symbol breakdown
-    holdings: list[HoldingSchema] = Field(default_factory=list)
 
-    model_config = {"from_attributes": True}
+class PortfolioHoldingsResponse(Base):
+    holdings: list[PortfolioHoldings]
+    summary: PortfolioSummary
