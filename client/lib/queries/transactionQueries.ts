@@ -5,11 +5,11 @@ import { TransactionFilters } from "@/lib/hooks/useTransactionFilters";
 
 export function useTransactions(filters?: TransactionFilters) {
    return useQuery({
-      // @ts-ignore
-      queryKey: ["transactions", [...filters.portfolios], [...filters.sides]],
+      queryKey: ["transactions", [...(filters?.portfolios ?? [])], [...(filters?.sides ?? [])]],
       queryFn: () => useTransactionApi.getAll(filters),
    });
 }
+
 export function useCreateTransaction(transaction: Partial<Transaction>, portfolio_id: string) {
    return useMutation({
       mutationFn: () => useTransactionApi.create(transaction, portfolio_id),

@@ -21,3 +21,12 @@ export function useCreatePortfolio(portfolio: Partial<Portfolio>) {
       mutationFn: () => usePortfolioApi.create(portfolio),
    });
 }
+
+export function usePortfolioHoldings(id: string) {
+   return useQuery({
+      queryKey: ["portfolioHoldings", id],
+      queryFn: () => usePortfolioApi.holdings(id),
+      placeholderData: (prev) => prev,
+      staleTime: Infinity,
+   });
+}
