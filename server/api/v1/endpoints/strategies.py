@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, status, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from db.database import get_db
-from models.User import User
+from features.auth.models.User import User
 from dependencies.strategies.sell.bracket import BracketStrategy
 from crud.crud_transactions import get_transactions
 from crud.crud_portfolios import get_portfolio_by_id

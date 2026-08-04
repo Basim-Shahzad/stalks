@@ -22,7 +22,7 @@ from schemas.TransactionsSchema import (
     TransactionSchema,
 )
 from crud.crud_transactions import get_transactions, create_transaction
-from models.User import User
+from features.auth.models.User import User
 from models.enums import ExchangeType
 from models.Portfolio import Portfolio
 from models.WatchedSymbol import WatchedSymbol

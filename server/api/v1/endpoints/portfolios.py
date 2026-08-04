@@ -11,7 +11,7 @@ from schemas.PortfolioSchema import (
 from crud.crud_portfolios import get_portfolios, create_portfolio, get_portfolio_by_id
 from crud.crud_transactions import get_transactions
 from services.psx_service import PSXScraperService
-from models.User import User
+from features.auth.models.User import User
 from dependencies.auth_deps import get_current_active_user
 from dependencies.portfolio.holdings import Holdings
 
