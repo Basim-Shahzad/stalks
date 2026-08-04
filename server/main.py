@@ -2,11 +2,12 @@ import threading
 from core.logger import logger
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from features.base.exception_handlers import register_exception_handlers
 from models.events import transaction_events
-from models.User import User
+from features.auth.models.User import User
 from models.Portfolio import Portfolio
 from models.Transaction import Transaction
-from models.RefreshToken import RefreshToken
+from features.auth.models.RefreshToken import RefreshToken
 from models.WatchedSymbol import WatchedSymbol
 from db.database import Base, engine, SessionLocal
 from api.v1.api import api_router
@@ -28,6 +29,8 @@ async def lifespan(app: FastAPI):
 
     Base.metadata.create_all(bind=engine)
     thread = None
+
+    register_exception_handlers(app=app)
 
     db = SessionLocal()
     try:

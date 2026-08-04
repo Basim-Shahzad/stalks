@@ -4,8 +4,9 @@ Base with common columns (id, created_at, updated_at) that every model
 inherits, so you don't redeclare them per-entity.
 """
 
+import uuid
 from datetime import datetime, timezone
-from sqlalchemy import DateTime, Integer
+from sqlalchemy import DateTime, UUID, String
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
@@ -27,7 +28,11 @@ class Base(DeclarativeBase):
     """Shared declarative base. Every domain model inherits from this,
     not from DeclarativeBase directly, so common columns stay consistent."""
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

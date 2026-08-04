@@ -1,0 +1,12 @@
+"""
+Shared dependencies injected into route handlers via Depends().
+"""
+
+from typing import Annotated
+
+from fastapi import Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from db.database import get_db
+
+DBSession = Annotated[AsyncSession, Depends(get_db)]

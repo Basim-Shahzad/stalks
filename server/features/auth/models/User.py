@@ -1,14 +1,13 @@
 from db.database import Base
-from models.mixins.TimestampMixin import TimestampMixin
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, Boolean
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .Portfolio import Portfolio
+    from ....models.Portfolio import Portfolio
 
 
-class User(TimestampMixin, Base):
+class User(Base):
     __tablename__ = "users"
 
     name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)

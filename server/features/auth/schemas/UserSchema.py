@@ -2,10 +2,10 @@ from datetime import datetime
 from pydantic import Field, EmailStr
 import uuid
 from typing import Optional
-from .base import Base
+from features.base.schema import BaseSchema
 
 
-class UserBase(Base):
+class UserBase(BaseSchema):
 
     name: str = Field(..., min_length=3, max_length=255)
     email: EmailStr = Field(..., max_length=255)
@@ -16,7 +16,7 @@ class UserCreateSchema(UserBase):
     password: str = Field(..., min_length=8)
 
 
-class UserUpdateSchema(Base):
+class UserUpdateSchema(BaseSchema):
     # Fields are optional for PATCH requests
     name: Optional[str] = Field(None, min_length=3, max_length=255)
     password: Optional[str] = Field(None, min_length=8)
@@ -30,7 +30,11 @@ class UserResponseSchema(UserBase):
     updated_at: datetime
 
 
-class UserPublicResponse(Base):
+class UserUpdateResponseSchema(UserResponseSchema):
+    """Returned after updating the current user's profile/password."""
+
+
+class UserPublicResponse(BaseSchema):
     """Minimal view for public profiles"""
 
     id: uuid.UUID

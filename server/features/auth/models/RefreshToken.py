@@ -1,12 +1,11 @@
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import String, ForeignKey, DateTime, UUID, Boolean
-from models.mixins.TimestampMixin import TimestampMixin
 from datetime import datetime, UTC
 import uuid
 from db.database import Base
 
 
-class RefreshToken(TimestampMixin, Base):
+class RefreshToken(Base):
     __tablename__ = "refresh_tokens"
 
     token: Mapped[str] = mapped_column(
