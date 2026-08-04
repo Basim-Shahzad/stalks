@@ -115,7 +115,7 @@ def get_ticker_data(
         raise HTTPException(status_code=404, detail=f"Unknown exchange: {exchange}")
 
     ticker = ticker.upper()
-    df = load_existing(exchange, ticker)
+    df = load_existing(exchange, ticker, limit)
     if df is None or df.empty:
         raise HTTPException(
             status_code=404, detail=f"No data found for {exchange}/{ticker}"
@@ -124,16 +124,18 @@ def get_ticker_data(
     if limit:
         df = df.tail(limit)
 
-    return JSONResponse(
-        content={
-            "exchange": exchange,
-            "ticker": ticker,
-            "rows": len(df),
-            "data": df.reset_index()
-            .rename(columns={"index": "Date"})
-            .to_dict(orient="records"),
-        }
+    records = (
+        df.reset_index()
+        .rename(columns=str.lower)
+        .to_dict(orient="records")
     )
+
+    return {
+        "exchange": exchange,
+        "ticker": ticker,
+        "rows": len(df),
+        "data": records,
+    }
 
 
 @router.post(

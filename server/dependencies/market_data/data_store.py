@@ -10,15 +10,18 @@ BUCKET = "market-data"
 
 # Log at module load time so you know client was created
 _supabase = create_client(
-    settings.supabase_url,
-    settings.supabase_key.get_secret_value()
+    settings.supabase_url, settings.supabase_key.get_secret_value()
 )
 logger.info("Supabase client initialized — bucket: %s", BUCKET)
 
 
 def save(exchange_key: str, ticker_symbol: str, df: pd.DataFrame) -> None:
     if df is None or df.empty:
-        logger.warning("save() called with empty df for %s/%s — skipping", exchange_key, ticker_symbol)
+        logger.warning(
+            "save() called with empty df for %s/%s — skipping",
+            exchange_key,
+            ticker_symbol,
+        )
         return
 
     cols_present = [c for c in OHLCV_COLS if c in df.columns]
@@ -39,20 +42,63 @@ def save(exchange_key: str, ticker_symbol: str, df: pd.DataFrame) -> None:
         _supabase.storage.from_(BUCKET).upload(
             path, csv_bytes, {"content-type": "text/csv", "upsert": "true"}
         )
-        logger.debug("Saved %s/%s (%d rows)", exchange_key, ticker_symbol, len(combined))
+        logger.debug(
+            "Saved %s/%s (%d rows)", exchange_key, ticker_symbol, len(combined)
+        )
     except Exception as e:
         logger.error("Failed to save %s/%s: %s", exchange_key, ticker_symbol, e)
 
+APPROX_BYTES_PER_ROW = 60  # tune this to your CSV row width
+HEADER_BYTES = 200          # enough to always capture the header line
 
-def load_existing(exchange_key: str, ticker_symbol: str) -> pd.DataFrame | None:
+def load_existing(
+    exchange_key: str,
+    ticker_symbol: str,
+    limit: int | None = None,
+) -> pd.DataFrame | None:
     path = f"{EXCHANGES[exchange_key]['folder']}/{ticker_symbol}.csv"
+    bucket = _supabase.storage.from_(BUCKET)
+
     try:
-        response = _supabase.storage.from_(BUCKET).download(path)
+        if limit is None:
+            response = bucket.download(path)
+        else:
+            # Fetch file size from metadata first
+            meta = bucket.info(path)  # returns dict with 'size' key
+            file_size = meta["size"]
+
+            # How many bytes to grab from the tail
+            tail_bytes = limit * APPROX_BYTES_PER_ROW + HEADER_BYTES
+            start_byte = max(0, file_size - tail_bytes)
+
+            if start_byte == 0:
+                # Small file — just download everything
+                response = bucket.download(path)
+            else:
+                # Grab header + tail slice
+                header_chunk = bucket.download(
+                    path,
+                    options={"headers": {"Range": f"bytes=0-{HEADER_BYTES - 1}"}},
+                )
+                tail_chunk = bucket.download(
+                    path,
+                    options={
+                        "headers": {"Range": f"bytes={start_byte}-{file_size - 1}"}
+                    },
+                )
+                # Combine: header + tail (tail may have a partial first line — pandas handles it)
+                response = header_chunk + tail_chunk
+
         df = pd.read_csv(io.BytesIO(response), index_col="Date", parse_dates=True)
+
+        if limit:
+            df = df.tail(limit)  # trim any overshoot from the partial chunk
+
         logger.debug("Loaded %s/%s (%d rows)", exchange_key, ticker_symbol, len(df))
         return df
+
     except Exception:
-        return None  # file doesn't exist yet — normal on first run
+        return None
 
 
 def get_last_date(exchange_key: str, ticker_symbol: str) -> pd.Timestamp | None:

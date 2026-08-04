@@ -1,17 +1,19 @@
 from pydantic import BaseModel
-from typing import Any, Optional
+from typing import Optional
+from datetime import datetime
 
+from .base import Base
 
 # ─── /data/status ───────────────────────────────────────────
 
-class FetchResult(BaseModel):
+class FetchResult(Base):
     exchange: str
     total: int
     success: int
     failed: int
 
 
-class DataStatusResponse(BaseModel):
+class DataStatusResponse(Base):
     fetch_running: bool
     last_fetch_result: Optional[list[FetchResult]] = None
     next_scheduled_run: Optional[str] = None
@@ -20,7 +22,7 @@ class DataStatusResponse(BaseModel):
 
 # ─── /exchanges ─────────────────────────────────────────────
 
-class ExchangeInfo(BaseModel):
+class ExchangeInfo(Base):
     folder: str
     suffix: str
     ticker_count: int
@@ -32,23 +34,23 @@ ExchangesResponse = dict[str, ExchangeInfo]
 
 # ─── /fetch/initial  &  /fetch/incremental ──────────────────
 
-class FetchTriggerResponse(BaseModel):
+class FetchTriggerResponse(Base):
     message: str
     exchange: str
 
 
 # ─── /data/{exchange}/{ticker} ──────────────────────────────
 
-class OHLCVRow(BaseModel):
-    Date: str
-    Open: Optional[float] = None
-    High: Optional[float] = None
-    Low: Optional[float] = None
-    Close: Optional[float] = None
-    Volume: Optional[float] = None
+class OHLCVRow(Base):
+    date: datetime
+    open: Optional[float] = None
+    high: Optional[float] = None
+    low: Optional[float] = None
+    close: Optional[float] = None
+    volume: Optional[float] = None
 
 
-class TickerDataResponse(BaseModel):
+class TickerDataResponse(Base):
     exchange: str
     ticker: str
     rows: int
