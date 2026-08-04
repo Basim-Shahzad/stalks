@@ -1,18 +1,17 @@
 import enum
 import uuid
 from db.database import Base
-from models.mixins.TimestampMixin import TimestampMixin
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, ForeignKey, Enum, event, UUID
 from typing import TYPE_CHECKING
 from .enums import ExchangeType
 
 if TYPE_CHECKING:
-    from .User import User
+    from ..features.auth.models.User import User
     from .Transaction import Transaction
 
 
-class Portfolio(TimestampMixin, Base):
+class Portfolio(Base):
     __tablename__ = "portfolios"
 
     user_id: Mapped[uuid.UUID] = mapped_column(

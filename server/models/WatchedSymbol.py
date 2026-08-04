@@ -5,10 +5,9 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from db.database import Base
 from models.enums import ExchangeType
-from models.mixins.TimestampMixin import TimestampMixin
 
 
-class WatchedSymbol(TimestampMixin, Base):
+class WatchedSymbol(Base):
     __tablename__ = "watched_symbols"
 
     __table_args__ = (

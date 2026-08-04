@@ -3,7 +3,6 @@ from datetime import date
 from decimal import Decimal
 from sqlalchemy import Numeric
 from db.database import Base
-from models.mixins.TimestampMixin import TimestampMixin
 from models.model_enums.side import Side
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, Numeric, Date, ForeignKey, Enum, UUID
@@ -13,7 +12,7 @@ if TYPE_CHECKING:
     from .Portfolio import Portfolio
 
 
-class Transaction(TimestampMixin, Base):
+class Transaction(Base):
     __tablename__ = "transactions"
 
     portfolio_id: Mapped[uuid.UUID] = mapped_column(

@@ -2,7 +2,6 @@ import enum
 from datetime import datetime
 
 from db.database import Base
-from models.mixins.TimestampMixin import TimestampMixin
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import String, Enum, JSON
 
@@ -14,7 +13,7 @@ class JobStatus(enum.Enum):
     FAILED = "FAILED"
 
 
-class Job(TimestampMixin, Base):
+class Job(Base):
     __tablename__ = "jobs"
 
     job_type: Mapped[str] = mapped_column(String(50), nullable=False)
