@@ -1,5 +1,5 @@
-from sqlalchemy.orm import Session
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.WatchedSymbol import WatchedSymbol
 from models.enums import ExchangeType
@@ -12,12 +12,13 @@ _EXCHANGE_KEY_MAP: dict[ExchangeType, str] = {
 }
 
 
-def get_merged_exchanges(db: Session) -> dict[str, dict]:
+async def get_merged_exchanges(db: AsyncSession) -> dict[str, dict]:
     """
     Returns EXCHANGES with tickers pulled from watched_symbols.
     Config tickers (if any remain) are preserved; DB tickers unioned in.
     """
-    rows = db.execute(select(WatchedSymbol.symbol, WatchedSymbol.exchange)).all()
+    result = await db.execute(select(WatchedSymbol.symbol, WatchedSymbol.exchange))
+    rows = result.all()
 
     db_tickers: dict[str, set[str]] = {key: set() for key in EXCHANGES}
     for symbol, exchange_type in rows:

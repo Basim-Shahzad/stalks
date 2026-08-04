@@ -1,14 +1,21 @@
+import asyncio
 import os
 from core.logger import logger
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
-from db.database import SessionLocal
+from db.database import AsyncSessionLocal
 from dependencies.market_data import config as market_settings
 from dependencies.market_data.get_tickers import get_merged_exchanges
 from services.market_data_service import run_all_exchanges, _fetch_lock, _fetch_status
 
 _scheduler = BackgroundScheduler(timezone=market_settings.SCHEDULER_TIMEZONE)
+
+
+async def _refresh_ticker_config() -> None:
+    async with AsyncSessionLocal() as db:
+        merged = await get_merged_exchanges(db)
+        market_settings.EXCHANGES.update(merged)
 
 
 def _nightly_job() -> None:
@@ -17,12 +24,9 @@ def _nightly_job() -> None:
         return
     try:
         _fetch_status["running"] = True
-        db = SessionLocal()
-        try:
-            merged = get_merged_exchanges(db)
-            market_settings.EXCHANGES.update(merged)
-        finally:
-            db.close()
+        # APScheduler runs this in its own thread, so it is safe to spin up
+        # a fresh event loop for the async DB work here.
+        asyncio.run(_refresh_ticker_config())
 
         results = run_all_exchanges(incremental=True)
         for r in results:

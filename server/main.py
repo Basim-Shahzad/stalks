@@ -9,7 +9,7 @@ from models.Portfolio import Portfolio
 from models.Transaction import Transaction
 from features.auth.models.RefreshToken import RefreshToken
 from models.WatchedSymbol import WatchedSymbol
-from db.database import Base, engine, SessionLocal
+from db.database import Base, engine, AsyncSessionLocal
 from api.v1.api import api_router
 from core.config import settings
 from contextlib import asynccontextmanager
@@ -27,20 +27,18 @@ from dependencies.market_data import config as market_settings
 async def lifespan(app: FastAPI):
     logger.info("App starting up…")
 
-    Base.metadata.create_all(bind=engine)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
     thread = None
 
     register_exception_handlers(app=app)
 
-    db = SessionLocal()
-    try:
-        merged = get_merged_exchanges(db)
+    async with AsyncSessionLocal() as db:
+        merged = await get_merged_exchanges(db)
         market_settings.EXCHANGES.update(merged)
         logger.info(
             "Loaded tickers: %s", {k: len(v["tickers"]) for k, v in merged.items()}
         )
-    finally:
-        db.close()
 
     if _is_first_run():
         thread = threading.Thread(
