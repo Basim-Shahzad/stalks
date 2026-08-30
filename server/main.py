@@ -1,4 +1,3 @@
-import threading
 from core.logger import logger
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,12 +12,6 @@ from db.database import Base, engine, AsyncSessionLocal
 from api.v1.api import api_router
 from core.config import settings
 from contextlib import asynccontextmanager
-from services.market_data_service import (
-    _is_first_run,
-    _background_fetch,
-    stop_background_fetch,
-)
-from dependencies.market_data import jobs as sched
 from dependencies.market_data.get_tickers import get_merged_exchanges
 from dependencies.market_data import config as market_settings
 
@@ -29,7 +22,6 @@ async def lifespan(app: FastAPI):
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    thread = None
 
     register_exception_handlers(app=app)
 
@@ -40,21 +32,8 @@ async def lifespan(app: FastAPI):
             "Loaded tickers: %s", {k: len(v["tickers"]) for k, v in merged.items()}
         )
 
-    if _is_first_run():
-        thread = threading.Thread(
-            target=_background_fetch, kwargs={"incremental": False}, daemon=False
-        )
-        thread.start()
-
-    sched.start()
-
     yield  # ----------------- APP IS RUNNING HERE -----------------
 
-    logger.info("Shutdown started — stopping background fetch...")
-    stop_background_fetch()
-    if thread is not None:
-        thread.join(timeout=300)
-    sched.stop()
     logger.info("Shutdown complete.")
 
 

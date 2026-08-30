@@ -6,17 +6,7 @@ from .base import Base
 
 # ─── /data/status ───────────────────────────────────────────
 
-class FetchResult(Base):
-    exchange: str
-    total: int
-    success: int
-    failed: int
-
-
 class DataStatusResponse(Base):
-    fetch_running: bool
-    last_fetch_result: Optional[list[FetchResult]] = None
-    next_scheduled_run: Optional[str] = None
     stored_csv_counts: dict[str, int]
 
 
@@ -30,13 +20,6 @@ class ExchangeInfo(Base):
 
 
 ExchangesResponse = dict[str, ExchangeInfo]
-
-
-# ─── /fetch/initial  &  /fetch/incremental ──────────────────
-
-class FetchTriggerResponse(Base):
-    message: str
-    exchange: str
 
 
 # ─── /data/{exchange}/{ticker} ──────────────────────────────

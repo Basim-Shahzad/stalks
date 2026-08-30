@@ -1,17 +1,13 @@
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Depends, status
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, HTTPException, Depends, status
 from sqlalchemy.orm import Session
-from dependencies.market_data import jobs as sched
 from typing import Optional
 from dependencies.market_data.config import EXCHANGES
 from dependencies.market_data.data_store import load_existing, list_stored_tickers
-from services.market_data_service import _background_fetch, _fetch_status
 from db.database import get_db
 from dependencies.market_data.get_tickers import get_merged_exchanges
 from dependencies.market_data import config as market_settings
 from schemas.MarketDataSchema import (
     DataStatusResponse,
-    FetchTriggerResponse,
     ExchangeInfo,
     TickerDataResponse,
 )
@@ -26,9 +22,6 @@ def status_market_data():
     stored = {key: len(list_stored_tickers(key)) for key in EXCHANGES}
 
     return {
-        "fetch_running": _fetch_status["running"],
-        "last_fetch_result": _fetch_status["last_result"],
-        "next_scheduled_run": sched.get_next_run(),
         "stored_csv_counts": stored,
     }
 
@@ -45,58 +38,6 @@ def exchanges():
             "tickers": cfg["tickers"],
         }
         for key, cfg in EXCHANGES.items()
-    }
-
-
-@router.post(
-    "/fetch/initial",
-    response_model=FetchTriggerResponse,
-    status_code=status.HTTP_201_CREATED,
-)
-def trigger_initial_fetch(
-    background_tasks: BackgroundTasks,
-    exchange: Optional[str] = None,
-):
-    if _fetch_status["running"]:
-        raise HTTPException(status_code=409, detail="A fetch is already running.")
-
-    if exchange and exchange.upper() not in EXCHANGES:
-        raise HTTPException(status_code=404, detail=f"Unknown exchange: {exchange}")
-
-    background_tasks.add_task(
-        _background_fetch,
-        incremental=False,
-        exchange_key=exchange.upper() if exchange else None,
-    )
-    return {
-        "message": "Initial fetch started in background.",
-        "exchange": exchange or "ALL",
-    }
-
-
-@router.post(
-    "/fetch/incremental",
-    response_model=FetchTriggerResponse,
-    status_code=status.HTTP_201_CREATED,
-)
-def trigger_incremental_fetch(
-    background_tasks: BackgroundTasks,
-    exchange: Optional[str] = None,
-):
-    if _fetch_status["running"]:
-        raise HTTPException(status_code=409, detail="A fetch is already running.")
-
-    if exchange and exchange.upper() not in EXCHANGES:
-        raise HTTPException(status_code=404, detail=f"Unknown exchange: {exchange}")
-
-    background_tasks.add_task(
-        _background_fetch,
-        incremental=True,
-        exchange_key=exchange.upper() if exchange else None,
-    )
-    return {
-        "message": "Incremental fetch started in background.",
-        "exchange": exchange or "ALL",
     }
 
 
