@@ -28,31 +28,34 @@ Dependencies are managed with `uv` (`uv.lock` present, `requirements.txt` also p
 
 ## Server architecture (FastAPI)
 
-Entry point is `server/main.py`. Its `lifespan` handler creates DB tables and loads exchange/ticker reference data. Routes are mounted under `/api/v1`; CORS is locked to `http://localhost:3000`. Market data is no longer fetched on a schedule from this app — that's owned by a separate microservice now; this app only reads/serves stored OHLCV data.
+**Known issue:** `server/main.py` currently fails to import — it does `from features.market_data...` (both `get_tickers` and `config`), but that module was deleted. Anyone running the server needs to fix or remove those two imports (and the ticker-loading step in `lifespan` that used them) first.
+
+Entry point is `server/main.py`. Its `lifespan` handler creates DB tables via `Base.metadata.create_all` and registers the app's exception handlers. Routes are mounted under `/api/v1` (wired up in `server/api/v1/api.py`); CORS is locked to `http://localhost:3000`.
 
 ### Vertical-slice `features/` layout
 
-The server has fully migrated off the old flat `models/schemas/crud/dependencies/api/v1/endpoints` split onto `server/features/<domain>/`. **Put new domain logic there.**
+The whole server lives under `server/features/<domain>/`, each following (as much as the domain needs) `{models,schemas,repository,service,router}`:
 
-- `features/auth`, `features/portfolios`, `features/transactions` each follow `{models,schemas,repository,service,router}`, properly async against the `AsyncSession`-based `get_db`. `features/base` holds the shared generic `repository`/`service`/exception-handling base classes the others build on.
-- `features/market_data` and `features/strategies` have no SQLAlchemy model of their own (market data is Supabase-storage-backed CSVs; strategies compute over already-persisted transactions), so they skip the repository/service layer — `router.py` composes the domain modules directly.
-- `features/transactions` also owns the PDF statement-parser (`statement_parser.py`), the watched-symbols event hooks (`events.py`), and the job-status router (`jobs_router`, mounted at `/api/v1/jobs`) — these were bundled in because they only ever served transactions.
-- `server/models/enums.py` (`ExchangeType`) is the one piece of shared kernel left outside `features/`, since it's used across multiple features. `server/api/v1/api.py` is the top-level router that wires every feature's router together.
+- `features/auth` — JWT access/refresh tokens (argon2/pwdlib hashing), `User`/`RefreshToken` models.
+- `features/portfolios` — portfolio CRUD and holdings computation (`holdings.py`).
+- `features/transactions` — transaction CRUD, the watched-symbols event hooks (`events.py`), the PSX broker-statement PDF parser (`statement_parser.py`), and background-job tracking (`models/Job.py`, `jobs_router` mounted at `/api/v1/jobs`).
+- `features/strategies` — bracket sell-strategy CSV basket generation (`strategy.py`, `sell/bracket.py`); has no model of its own, computes over transactions already persisted by `features/transactions`.
+- `features/base` — shared generic `BaseRepository`/`BaseService`/domain-exception classes (`NotFoundException`, `ConflictException`, etc.) that the other features build on, plus the exception handlers registered in `main.py` that map them to HTTP responses.
+
+`server/models/enums.py` (`ExchangeType`) is the one piece of shared kernel left outside `features/`, since it's used across multiple features.
+
+There used to be a `features/market_data` (exchange config, Supabase-backed OHLCV CSV storage, ticker list). It was deleted; nothing has replaced its market-data-serving endpoints yet.
 
 ### Data layer
-- `server/db/database.py` sets up async SQLAlchemy: `create_async_engine`, `async_sessionmaker`, and a shared `Base` that auto-adds `id`/`created_at`/`updated_at`. The `get_db()` dependency commits on success and rolls back on exception, per request.
-- `peewee` is also a listed dependency but is not used by the active data layer (SQLAlchemy async is the real ORM) — likely vestigial.
-
-### Auth
-`server/features/auth/` issues self-signed JWT access + refresh tokens (argon2/pwdlib hashing), alongside Supabase config values (`supabase_url`/`supabase_key`) present in settings.
+- `server/db/database.py` sets up async SQLAlchemy: `create_async_engine`, `async_sessionmaker`, and a shared `Base` that auto-adds `id`/`created_at`/`updated_at`. The `get_db()` FastAPI dependency commits on success and rolls back on exception, per request. All feature repositories are async and use this.
+- `peewee`, `pandas`, and `yfinance` are still listed as dependencies in `server/pyproject.toml` but nothing in `server/` imports them anymore — leftover from removed/superseded code, not in active use.
 
 ### Domain integrations
-- Market data: on-demand live price scraping of the PSX site (`beautifulsoup4`/`requests`) via `server/services/psx_service.py`, used by portfolio holdings and strategies. Historical OHLCV storage/reads live in `features/market_data/`; the scheduled fetch that populates it is a separate microservice, not this app.
+- Live price lookups: on-demand PSX site scraping (`beautifulsoup4`/`requests`) via `server/services/psx_service.py`, used by portfolio holdings and strategies.
 - Transaction import: brokerage-statement PDF parsing via `pdfplumber` in `features/transactions/statement_parser.py` (async, includes PSX sector lookup/caching), invoked as a background job (`features/transactions/service.py`) after `POST /transactions/{portfolio_id}/upload/pdf`.
 
 ### Config / env vars
-No `.env.example` exists. `server/core/config.py` (pydantic-settings) reads these from `.env`:
-`SQLALCHEMY_DATABASE_URI`, `secret_key`, `algorithm` (default `HS256`), `access_token_expire_minutes`, `refresh_token_expire_days`, `app_env`, `supabase_url`, `supabase_key`.
+No `.env.example` exists. `server/core/config.py` (pydantic-settings, extra env vars forbidden) currently defines: `SQLALCHEMY_DATABASE_URI`, `secret_key`, `algorithm` (default `HS256`), `access_token_expire_minutes`, `refresh_token_expire_days`, `app_env`. Supabase (`supabase_url`/`supabase_key`) was removed from `Settings` along with `features/market_data` — if a local `.env` still sets those keys, `Settings()` will fail validation on startup (extra inputs aren't permitted).
 
 ## Client architecture (Next.js App Router)
 
@@ -61,6 +64,7 @@ No `.env.example` exists. `server/core/config.py` (pydantic-settings) reads thes
 - `client/hooks/` (older, e.g. `usePortfolioApi.ts`, `useTransactionApi.ts`) and `client/lib/hooks/` + `client/lib/queries/` (newer, TanStack Query–based) overlap in purpose — prefer the `lib/queries` pattern for new data-fetching code.
 - `client/services/api.service.ts` is the axios-based API client.
 - Path alias `@/*` resolves to the `client/` project root (see `client/tsconfig.json`).
+- Note: `client/lib/queries/marketQueries.ts` calls `/market/data/{exchange}/{symbol}`, a server endpoint that no longer exists now that `features/market_data` was removed.
 
 ## Commit style
 
