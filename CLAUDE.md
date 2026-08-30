@@ -28,24 +28,20 @@ Dependencies are managed with `uv` (`uv.lock` present, `requirements.txt` also p
 
 ## Server architecture (FastAPI)
 
-Entry point is `server/main.py`. Its `lifespan` handler creates DB tables, loads exchange/ticker reference data, kicks off a background thread for market-data fetching, and starts an APScheduler job runner. Routes are mounted under `/api/v1`; CORS is locked to `http://localhost:3000`.
-
-**Known issue:** `main.py` imports `services.market_data_service`, which does not exist under `server/services/` (only `psx_service.py`, `psx_statement_parsing_service.py`, and `psx_statement_parsing_async_service.py` exist there). This looks like a stale import from a rename — be aware it may need fixing if touched.
+Entry point is `server/main.py`. Its `lifespan` handler creates DB tables and loads exchange/ticker reference data. Routes are mounted under `/api/v1`; CORS is locked to `http://localhost:3000`. Market data is no longer fetched on a schedule from this app — that's owned by a separate microservice now; this app only reads/serves stored OHLCV data.
 
 ### Mid-migration: two coexisting patterns
 
 The server is being migrated from a flat, domain-scattered layout to a vertical-slice `features/` layout. **When adding new domain logic, follow the `features/` pattern, not the legacy one.**
 
-- **Legacy flat pattern** (still what portfolios, transactions, market-data, and strategies use today):
-  - `server/models/` — SQLAlchemy models (`Portfolio.py`, `Transaction.py`, etc.)
-  - `server/schemas/` — Pydantic schemas
-  - `server/crud/` — data-access functions
-  - `server/dependencies/` — business logic, grouped by domain (`market_data/`, `portfolio/`, `strategies/`, `transactions/`)
-  - `server/api/v1/endpoints/` — routers, wired together in `server/api/v1/api.py`
 - **New vertical-slice pattern** (`server/features/<domain>/{models,schemas,repository,service,router}`):
-  - `features/auth` is the fully-built reference implementation.
-  - `features/base` holds the shared generic `repository`/`service`/exception-handling base classes that other features build on.
-  - `features/portfolios` and `features/transactions` currently exist only as empty stub directories awaiting migration — don't assume logic lives there yet.
+  - `features/auth`, `features/portfolios`, and `features/transactions` are fully migrated — repository/service/router, properly async against the `AsyncSession`-based `get_db`. `features/base` holds the shared generic `repository`/`service`/exception-handling base classes the others build on.
+  - `features/transactions` also owns the PDF statement-parser (`statement_parser.py`), the watched-symbols event hooks (`events.py`), and the job-status router (`jobs_router`, mounted at `/api/v1/jobs`) — these were bundled in because they only ever served transactions.
+- **Legacy flat pattern** (still what market-data and strategies use today):
+  - `server/dependencies/market_data/`, `server/dependencies/strategies/` — business logic
+  - `server/schemas/MarketDataSchema.py`
+  - `server/api/v1/endpoints/market_data.py`, `strategies.py` — routers, wired together in `server/api/v1/api.py`
+  - `server/models/enums.py` (`ExchangeType`) remains shared kernel, used by both features and the legacy code — it isn't owned by any one feature.
 
 ### Data layer
 - `server/db/database.py` sets up async SQLAlchemy: `create_async_engine`, `async_sessionmaker`, and a shared `Base` that auto-adds `id`/`created_at`/`updated_at`. The `get_db()` dependency commits on success and rolls back on exception, per request.
@@ -55,8 +51,8 @@ The server is being migrated from a flat, domain-scattered layout to a vertical-
 `server/features/auth/` issues self-signed JWT access + refresh tokens (argon2/pwdlib hashing), alongside Supabase config values (`supabase_url`/`supabase_key`) present in settings.
 
 ### Domain integrations
-- Market data: `yfinance` plus scraping of the PSX site (`beautifulsoup4`/`curl-cffi`/`requests`) via `server/services/psx_service.py` and `server/dependencies/market_data/`.
-- Transaction import: brokerage-statement PDF parsing via `pdfplumber`/`pdfminer-six`/`pypdfium2` in `psx_statement_parsing_service.py` (sync) and `psx_statement_parsing_async_service.py` (async).
+- Market data: on-demand live price scraping of the PSX site (`beautifulsoup4`/`requests`) via `server/services/psx_service.py`, used by portfolio holdings and strategies. Historical OHLCV storage/reads live in `server/dependencies/market_data/`; the scheduled fetch that populates it is a separate microservice, not this app.
+- Transaction import: brokerage-statement PDF parsing via `pdfplumber` in `features/transactions/statement_parser.py` (async, includes PSX sector lookup/caching), invoked as a background job (`features/transactions/service.py`) after `POST /transactions/{portfolio_id}/upload/pdf`.
 
 ### Config / env vars
 No `.env.example` exists. `server/core/config.py` (pydantic-settings) reads these from `.env`:
