@@ -1,14 +1,14 @@
-import enum
+import uuid
 from datetime import datetime
 from decimal import Decimal
-import uuid
-from .base import Base
-from models.enums import ExchangeType
+
 from pydantic import Field
 
+from features.base.schema import BaseSchema
+from models.enums import ExchangeType
 
-class PortfolioSchema(Base):
 
+class PortfolioSchema(BaseSchema):
     id: uuid.UUID
     exchange: ExchangeType
     currency: str
@@ -17,12 +17,8 @@ class PortfolioSchema(Base):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
 
-
-class PortfolioListItemSchema(Base):
-
+class PortfolioListItemSchema(BaseSchema):
     id: uuid.UUID
     exchange: ExchangeType
     currency: str
@@ -31,26 +27,19 @@ class PortfolioListItemSchema(Base):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
 
-
-class PortfolioCreateSchema(Base):
-
+class PortfolioCreateSchema(BaseSchema):
     exchange: ExchangeType = ExchangeType.US
     currency: str = "USD"
     name: str
     description: str
-
-    class Config:
-        from_attributes = True
 
 
 class PortfolioUpdateSchema(PortfolioCreateSchema):
     pass
 
 
-class PortfolioHoldings(Base):
+class PortfolioHoldings(BaseSchema):
     symbol: str
     company: str
     sector: str
@@ -71,7 +60,7 @@ class PortfolioHoldings(Base):
     total_pnl: Decimal = Field(default=Decimal("0"))
 
 
-class PortfolioSummary(Base):
+class PortfolioSummary(BaseSchema):
     total_invested: Decimal
     total_market_value: Decimal
     total_cost_basis: Decimal
@@ -83,6 +72,6 @@ class PortfolioSummary(Base):
     holdings_count: int
 
 
-class PortfolioHoldingsResponse(Base):
+class PortfolioHoldingsResponse(BaseSchema):
     holdings: list[PortfolioHoldings]
     summary: PortfolioSummary

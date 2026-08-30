@@ -4,7 +4,7 @@ from sqlalchemy import String, Boolean
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ....models.Portfolio import Portfolio
+    from features.portfolios.models.Portfolio import Portfolio
 
 
 class User(Base):

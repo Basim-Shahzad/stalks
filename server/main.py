@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from features.base.exception_handlers import register_exception_handlers
 from models.events import transaction_events
 from features.auth.models.User import User
-from models.Portfolio import Portfolio
+from features.portfolios.models.Portfolio import Portfolio
 from models.Transaction import Transaction
 from features.auth.models.RefreshToken import RefreshToken
 from models.WatchedSymbol import WatchedSymbol

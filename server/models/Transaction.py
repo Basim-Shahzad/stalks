@@ -9,7 +9,7 @@ from sqlalchemy import String, Numeric, Date, ForeignKey, Enum, UUID
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .Portfolio import Portfolio
+    from features.portfolios.models.Portfolio import Portfolio
 
 
 class Transaction(Base):

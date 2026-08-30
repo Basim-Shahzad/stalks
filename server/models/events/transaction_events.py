@@ -11,7 +11,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
 from models.Transaction import Transaction
-from models.Portfolio import Portfolio
+from features.portfolios.models.Portfolio import Portfolio
 from models.enums import ExchangeType
 from models.WatchedSymbol import WatchedSymbol
 

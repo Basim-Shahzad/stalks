@@ -1,14 +1,15 @@
-import enum
 import uuid
-from db.database import Base
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import String, ForeignKey, Enum, event, UUID
 from typing import TYPE_CHECKING
-from .enums import ExchangeType
+
+from sqlalchemy import Enum, ForeignKey, String, UUID, event
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from db.database import Base
+from models.enums import ExchangeType
 
 if TYPE_CHECKING:
-    from ..features.auth.models.User import User
-    from .Transaction import Transaction
+    from features.auth.models.User import User
+    from models.Transaction import Transaction
 
 
 class Portfolio(Base):

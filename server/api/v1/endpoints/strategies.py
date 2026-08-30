@@ -3,38 +3,30 @@ import uuid
 from datetime import datetime
 from fastapi import APIRouter, Depends, status, HTTPException
 from fastapi.responses import StreamingResponse
-from sqlalchemy.orm import Session
-from db.database import get_db
+from api.deps import DBSession
 from features.auth.models.User import User
+from features.portfolios.repository import PortfolioRepository
+from features.portfolios.service import PortfolioService
 from dependencies.strategies.sell.bracket import BracketStrategy
 from crud.crud_transactions import get_transactions
-from crud.crud_portfolios import get_portfolio_by_id
 from dependencies.auth_deps import get_current_active_user
 
 router = APIRouter()
 
 
-def _build_strategy(
+async def _build_strategy(
     portfolio_id: uuid.UUID,
     account_id: int,
     trigger_pct: float,
     upper_sell_bracket_pct: float,
     stop_price_pct: float,
     sell_volume_pct: float,
-    db: Session,
+    db: DBSession,
     current_user,
 ) -> BracketStrategy:
-    portfolio = get_portfolio_by_id(db, portfolio_id)
-
-    if portfolio is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Portfolio not found"
-        )
-
-    if portfolio.user_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
-        )
+    portfolio = await PortfolioService(PortfolioRepository(db)).get_owned_or_404(
+        portfolio_id, current_user.id
+    )
 
     transactions = get_transactions(db, portfolio_id)
     symbols = list({t.symbol for t in transactions})
@@ -60,17 +52,17 @@ def _csv_response(csv_content: str, filename: str) -> StreamingResponse:
 
 
 @router.get("/bracket/csv/limit", response_class=StreamingResponse)
-def get_limit_csv(
+async def get_limit_csv(
     portfolio_id: uuid.UUID,
     account_id: int,
     trigger_pct: float,
     upper_sell_bracket_pct: float,
     stop_price_pct: float,
     sell_volume_pct: float,
-    db: Session = Depends(get_db),
+    db: DBSession,
     current_user: User = Depends(get_current_active_user),
 ):
-    strategy = _build_strategy(
+    strategy = await _build_strategy(
         portfolio_id,
         account_id,
         trigger_pct,
@@ -93,17 +85,17 @@ def get_limit_csv(
 
 
 @router.get("/bracket/csv/slo", response_class=StreamingResponse)
-def get_slo_csv(
+async def get_slo_csv(
     portfolio_id: uuid.UUID,
     account_id: int,
     trigger_pct: float,
     upper_sell_bracket_pct: float,
     stop_price_pct: float,
     sell_volume_pct: float,
-    db: Session = Depends(get_db),
+    db: DBSession,
     current_user: User = Depends(get_current_active_user),
 ):
-    strategy = _build_strategy(
+    strategy = await _build_strategy(
         portfolio_id,
         account_id,
         trigger_pct,

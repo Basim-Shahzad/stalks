@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select
 from uuid import UUID
 from datetime import datetime
-from models.Portfolio import Portfolio
+from features.portfolios.models.Portfolio import Portfolio
 from models.Transaction import Transaction
 from models.enums import ExchangeType
 from models.WatchedSymbol import WatchedSymbol

@@ -24,7 +24,7 @@ from schemas.TransactionsSchema import (
 from crud.crud_transactions import get_transactions, create_transaction
 from features.auth.models.User import User
 from models.enums import ExchangeType
-from models.Portfolio import Portfolio
+from features.portfolios.models.Portfolio import Portfolio
 from models.WatchedSymbol import WatchedSymbol
 from dependencies.auth_deps import get_current_active_user
 from dependencies.transactions.jobs import process_mmk_pdf_background
