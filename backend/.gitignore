@@ -1,6 +1,0 @@
-.env
-__pycache__*
-venv/
-image.png
-.env.development
-.env.production

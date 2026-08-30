@@ -1,0 +1,10 @@
+.gitignore
+gcf.md
+dev_start.ps1
+start.ps1
+psx_service_return_data.json
+temp/
+PRDs/
+.claudeignore
+backend/
+frontend/
