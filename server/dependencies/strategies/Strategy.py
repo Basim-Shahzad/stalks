@@ -1,5 +1,5 @@
 from services.psx_service import PSXScraperService
-from models.Transaction import Transaction
+from features.transactions.models.Transaction import Transaction
 
 psx = PSXScraperService()
 

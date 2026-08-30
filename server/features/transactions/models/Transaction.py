@@ -1,12 +1,13 @@
 import uuid
 from datetime import date
 from decimal import Decimal
-from sqlalchemy import Numeric
-from db.database import Base
-from models.model_enums.side import Side
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import String, Numeric, Date, ForeignKey, Enum, UUID
 from typing import TYPE_CHECKING
+
+from sqlalchemy import Date, Enum, ForeignKey, Numeric, String, UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from db.database import Base
+from features.transactions.models.Side import Side
 
 if TYPE_CHECKING:
     from features.portfolios.models.Portfolio import Portfolio

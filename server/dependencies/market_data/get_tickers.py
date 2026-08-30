@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.WatchedSymbol import WatchedSymbol
+from features.transactions.models.WatchedSymbol import WatchedSymbol
 from models.enums import ExchangeType
 from dependencies.market_data.config import EXCHANGES
 

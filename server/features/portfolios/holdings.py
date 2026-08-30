@@ -6,7 +6,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from models.Transaction import Transaction
+    from features.transactions.models.Transaction import Transaction
     from services.psx_service import PSXScraperService
 
 

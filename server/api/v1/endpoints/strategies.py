@@ -8,7 +8,7 @@ from features.auth.models.User import User
 from features.portfolios.repository import PortfolioRepository
 from features.portfolios.service import PortfolioService
 from dependencies.strategies.sell.bracket import BracketStrategy
-from crud.crud_transactions import get_transactions
+from features.transactions.repository import TransactionRepository
 from dependencies.auth_deps import get_current_active_user
 
 router = APIRouter()
@@ -28,7 +28,9 @@ async def _build_strategy(
         portfolio_id, current_user.id
     )
 
-    transactions = get_transactions(db, portfolio_id)
+    transactions = await TransactionRepository(db).list_for_user(
+        current_user.id, portfolio_ids=[portfolio_id]
+    )
     symbols = list({t.symbol for t in transactions})
 
     return BracketStrategy(

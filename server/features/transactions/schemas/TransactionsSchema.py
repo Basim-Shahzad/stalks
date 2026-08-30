@@ -1,12 +1,12 @@
-from datetime import datetime, date
-from pydantic import Field
-from decimal import Decimal
 import uuid
+from datetime import date, datetime
+from decimal import Decimal
 from typing import Optional
-from .base import Base
+
+from features.base.schema import BaseSchema
 
 
-class TransactionSchema(Base):
+class TransactionSchema(BaseSchema):
     id: uuid.UUID
     transaction_date: date
     company: str
@@ -21,18 +21,13 @@ class TransactionSchema(Base):
     total_amount: Decimal
     created_at: datetime
 
-    class Config:
-        from_attributes = True
 
-
-class TransactionsListItemSchema(Base):
-
+class TransactionsListItemSchema(BaseSchema):
     id: uuid.UUID
     transaction_date: date
     company: Optional[str] = None
-    sector: Optional[str] = None
     symbol: str
-    sector: str
+    sector: Optional[str] = None
     side: str
     quantity: Decimal
     rate: Decimal
@@ -41,12 +36,8 @@ class TransactionsListItemSchema(Base):
     charges: Optional[Decimal] = None
     total_amount: Optional[Decimal] = None
 
-    class Config:
-        from_attributes = True
 
-
-class TransactionCreateSchema(Base):
-
+class TransactionCreateSchema(BaseSchema):
     transaction_date: date
     company: Optional[str] = None
     symbol: str

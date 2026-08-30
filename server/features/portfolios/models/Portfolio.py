@@ -9,7 +9,7 @@ from models.enums import ExchangeType
 
 if TYPE_CHECKING:
     from features.auth.models.User import User
-    from models.Transaction import Transaction
+    from features.transactions.models.Transaction import Transaction
 
 
 class Portfolio(Base):

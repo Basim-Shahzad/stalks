@@ -3,9 +3,9 @@ import uuid
 from fastapi import APIRouter, Depends, status
 
 from api.deps import DBSession
-from crud.crud_transactions import get_transactions
 from features.auth.dependencies import get_current_active_user
 from features.auth.models.User import User
+from features.transactions.repository import TransactionRepository
 from services.psx_service import PSXScraperService
 
 from .holdings import Holdings
@@ -77,7 +77,9 @@ async def get_portfolio_holdings(
         portfolio_id, current_user.id
     )
 
-    transactions = get_transactions(db, current_user.id, portfolios=[portfolio.id])
+    transactions = await TransactionRepository(db).list_for_user(
+        current_user.id, portfolio_ids=[portfolio.id]
+    )
     psx = PSXScraperService()
 
     holdings = Holdings.from_transactions(transactions, psx)

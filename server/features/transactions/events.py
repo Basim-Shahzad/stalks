@@ -1,5 +1,5 @@
 """
-transaction_events.py — SQLAlchemy event hooks that keep watched_symbols
+events.py — SQLAlchemy event hooks that keep watched_symbols
 in sync whenever a Transaction is inserted or deleted.
 
 Import this module once at app startup (e.g. in main.py) so the hooks register.
@@ -10,10 +10,10 @@ from sqlalchemy.dialects.mysql import insert as mysql_insert
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
-from models.Transaction import Transaction
 from features.portfolios.models.Portfolio import Portfolio
 from models.enums import ExchangeType
-from models.WatchedSymbol import WatchedSymbol
+from .models.Transaction import Transaction
+from .models.WatchedSymbol import WatchedSymbol
 
 
 def _get_exchange_for_transaction(

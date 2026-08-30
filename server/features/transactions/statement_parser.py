@@ -1,5 +1,5 @@
 """
-psx_statement_parsing_service.py
+statement_parser.py
 =======================
 PSX Transaction Statement Parser Service
 Broker: Munir Khanani Securities (TREC No. 084)
@@ -9,7 +9,7 @@ transaction data as a list of dicts suitable for JSON serialisation.
 
 Public API
 ----------
-    from psx_statement_parsing_service import process_statement
+    from features.transactions.statement_parser import process_statement
 
     transactions = await process_statement("statement.pdf")
     # → list[dict] ready for json.dumps / frontend delivery
@@ -77,15 +77,11 @@ PSX_SECTORS = [
 # ---------------------------------------------------------------------------
 # Persistent sector cache
 # ---------------------------------------------------------------------------
-_CACHE_FILE = (
-    Path(__file__).parent.parent.parent
-    / "server"
-    / "core"
-    / "data"
-    / "cache"
-    / "sector_cache.json"
+# features/transactions/statement_parser.py -> features/transactions -> features -> server
+SECTOR_CACHE_FILE = (
+    Path(__file__).resolve().parents[2] / "core" / "data" / "cache" / "sector_cache.json"
 )
-_CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
+SECTOR_CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
 _SECTOR_CACHE: dict[str, str] = {}
 
 
@@ -96,9 +92,9 @@ def _load_cache() -> None:
     event loop starts, so blocking here is harmless.
     """
     global _SECTOR_CACHE
-    if _CACHE_FILE.exists():
+    if SECTOR_CACHE_FILE.exists():
         try:
-            _SECTOR_CACHE = json.loads(_CACHE_FILE.read_text(encoding="utf-8"))
+            _SECTOR_CACHE = json.loads(SECTOR_CACHE_FILE.read_text(encoding="utf-8"))
             logger.info("Sector cache loaded: %d symbols", len(_SECTOR_CACHE))
         except (json.JSONDecodeError, OSError) as e:
             logger.warning("Could not load sector cache: %s — starting fresh", e)
@@ -119,7 +115,7 @@ async def _save_cache() -> None:
 
     def _write() -> None:
         try:
-            _CACHE_FILE.write_text(snapshot, encoding="utf-8")
+            SECTOR_CACHE_FILE.write_text(snapshot, encoding="utf-8")
         except OSError as e:
             logger.warning("Could not save sector cache: %s", e)
 
@@ -753,15 +749,13 @@ async def process_statement(pdf_path: str) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
-# CLI convenience (python psx_statement_parsing_service.py statement.pdf [out.json])
+# CLI convenience (python statement_parser.py statement.pdf [out.json])
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
     import sys
 
     if len(sys.argv) < 2:
-        print(
-            "Usage: python psx_statement_parsing_service.py <statement.pdf> [output.json]"
-        )
+        print("Usage: python statement_parser.py <statement.pdf> [output.json]")
         sys.exit(1)
 
     pdf_file = sys.argv[1]
