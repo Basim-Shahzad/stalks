@@ -1,18 +1,19 @@
-from fastapi import APIRouter, HTTPException, Depends, status
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, HTTPException, status
 from typing import Optional
-from dependencies.market_data.config import EXCHANGES
-from dependencies.market_data.data_store import load_existing, list_stored_tickers
-from db.database import get_db
-from dependencies.market_data.get_tickers import get_merged_exchanges
-from dependencies.market_data import config as market_settings
-from schemas.MarketDataSchema import (
+
+from api.deps import DBSession
+
+from .config import EXCHANGES
+from .data_store import load_existing, list_stored_tickers
+from .get_tickers import get_merged_exchanges
+from . import config as market_settings
+from .schemas.MarketDataSchema import (
     DataStatusResponse,
     ExchangeInfo,
     TickerDataResponse,
 )
 
-router = APIRouter()
+router = APIRouter(prefix="/market", tags=["Market Data"])
 
 
 @router.get(
@@ -84,9 +85,7 @@ def get_ticker_data(
     response_model=dict[str, int],
     status_code=status.HTTP_201_CREATED,
 )
-def reload_tickers(
-    db: Session = Depends(get_db),
-):
-    merged = get_merged_exchanges(db)
+async def reload_tickers(db: DBSession):
+    merged = await get_merged_exchanges(db)
     market_settings.EXCHANGES.update(merged)
     return {k: len(v["tickers"]) for k, v in merged.items()}

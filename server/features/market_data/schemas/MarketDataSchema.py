@@ -1,18 +1,17 @@
-from pydantic import BaseModel
-from typing import Optional
 from datetime import datetime
+from typing import Optional
 
-from .base import Base
+from features.base.schema import BaseSchema
 
 # ─── /data/status ───────────────────────────────────────────
 
-class DataStatusResponse(Base):
+class DataStatusResponse(BaseSchema):
     stored_csv_counts: dict[str, int]
 
 
 # ─── /exchanges ─────────────────────────────────────────────
 
-class ExchangeInfo(Base):
+class ExchangeInfo(BaseSchema):
     folder: str
     suffix: str
     ticker_count: int
@@ -24,7 +23,7 @@ ExchangesResponse = dict[str, ExchangeInfo]
 
 # ─── /data/{exchange}/{ticker} ──────────────────────────────
 
-class OHLCVRow(Base):
+class OHLCVRow(BaseSchema):
     date: datetime
     open: Optional[float] = None
     high: Optional[float] = None
@@ -33,7 +32,7 @@ class OHLCVRow(Base):
     volume: Optional[float] = None
 
 
-class TickerDataResponse(Base):
+class TickerDataResponse(BaseSchema):
     exchange: str
     ticker: str
     rows: int

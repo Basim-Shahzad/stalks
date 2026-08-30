@@ -7,11 +7,12 @@ from api.deps import DBSession
 from features.auth.models.User import User
 from features.portfolios.repository import PortfolioRepository
 from features.portfolios.service import PortfolioService
-from dependencies.strategies.sell.bracket import BracketStrategy
 from features.transactions.repository import TransactionRepository
-from dependencies.auth_deps import get_current_active_user
+from features.auth.dependencies import get_current_active_user
 
-router = APIRouter()
+from .sell.bracket import BracketStrategy
+
+router = APIRouter(prefix="/strategies", tags=["Strategies"])
 
 
 async def _build_strategy(

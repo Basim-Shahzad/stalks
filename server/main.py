@@ -12,8 +12,8 @@ from db.database import Base, engine, AsyncSessionLocal
 from api.v1.api import api_router
 from core.config import settings
 from contextlib import asynccontextmanager
-from dependencies.market_data.get_tickers import get_merged_exchanges
-from dependencies.market_data import config as market_settings
+from features.market_data.get_tickers import get_merged_exchanges
+from features.market_data import config as market_settings
 
 
 @asynccontextmanager

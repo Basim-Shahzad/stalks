@@ -2,8 +2,9 @@ import io
 import csv
 from decimal import Decimal, ROUND_HALF_UP
 from functools import cached_property
-from dependencies.strategies.Strategy import Strategy
 from features.transactions.models.Transaction import Transaction
+
+from ..strategy import Strategy
 
 
 class BracketStrategy(Strategy):
