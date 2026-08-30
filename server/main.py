@@ -12,8 +12,6 @@ from db.database import Base, engine, AsyncSessionLocal
 from api.v1.api import api_router
 from core.config import settings
 from contextlib import asynccontextmanager
-from features.market_data.get_tickers import get_merged_exchanges
-from features.market_data import config as market_settings
 
 
 @asynccontextmanager
@@ -24,13 +22,6 @@ async def lifespan(app: FastAPI):
         await conn.run_sync(Base.metadata.create_all)
 
     register_exception_handlers(app=app)
-
-    async with AsyncSessionLocal() as db:
-        merged = await get_merged_exchanges(db)
-        market_settings.EXCHANGES.update(merged)
-        logger.info(
-            "Loaded tickers: %s", {k: len(v["tickers"]) for k, v in merged.items()}
-        )
 
     yield  # ----------------- APP IS RUNNING HERE -----------------
 
