@@ -6,6 +6,7 @@ from pydantic import Field
 
 from features.base.schema import BaseSchema
 from models.enums import ExchangeType
+from features.portfolios.models.Portfolio import Broker
 
 
 class PortfolioSchema(BaseSchema):
@@ -14,6 +15,7 @@ class PortfolioSchema(BaseSchema):
     currency: str
     name: str
     description: str
+    broker: str | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -24,15 +26,17 @@ class PortfolioListItemSchema(BaseSchema):
     currency: str
     name: str
     description: str
+    broker: str | None = None
     created_at: datetime
     updated_at: datetime
 
 
 class PortfolioCreateSchema(BaseSchema):
-    exchange: ExchangeType = ExchangeType.US
-    currency: str = "USD"
+    exchange: ExchangeType = ExchangeType.PSX
+    currency: str = "PKR"
     name: str
     description: str
+    broker: str | None = None
 
 
 class PortfolioUpdateSchema(PortfolioCreateSchema):

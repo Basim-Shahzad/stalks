@@ -1,3 +1,4 @@
+import enum
 import uuid
 from typing import TYPE_CHECKING
 
@@ -11,6 +12,10 @@ if TYPE_CHECKING:
     from features.auth.models.User import User
     from features.transactions.models.Transaction import Transaction
 
+class Broker(enum.Enum):
+    AKD = "AKD Securities Limited"
+    MMK = "Munir Khanani Securities (Pvt) Ltd"
+    OTHER = "OTHER"
 
 class Portfolio(Base):
     __tablename__ = "portfolios"
@@ -25,6 +30,7 @@ class Portfolio(Base):
     currency: Mapped[str] = mapped_column(String(10), nullable=False, default="USD")
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str] = mapped_column(String(255), nullable=True)
+    broker: Mapped[Broker | None] = mapped_column(Enum(Broker), nullable=True)
 
     transactions: Mapped[list["Transaction"]] = relationship(
         "Transaction", back_populates="portfolio", cascade="all, delete-orphan"
