@@ -7,7 +7,6 @@ from features.auth.models.User import User
 from features.portfolios.models.Portfolio import Portfolio
 from features.transactions.models.Transaction import Transaction
 from features.auth.models.RefreshToken import RefreshToken
-from features.transactions.models.WatchedSymbol import WatchedSymbol
 from db.database import Base, engine, AsyncSessionLocal
 from api.v1.api import api_router
 from core.config import settings

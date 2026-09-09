@@ -2,7 +2,7 @@ import uuid
 from typing import Optional
 
 from features.base.schema import BaseSchema
-from features.transactions.models.Job import JobStatus
+from models.Job import JobStatus
 
 
 class JobStatusResponse(BaseSchema):

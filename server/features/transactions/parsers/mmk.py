@@ -79,7 +79,11 @@ PSX_SECTORS = [
 # ---------------------------------------------------------------------------
 # features/transactions/statement_parser.py -> features/transactions -> features -> server
 SECTOR_CACHE_FILE = (
-    Path(__file__).resolve().parents[2] / "core" / "data" / "cache" / "sector_cache.json"
+    Path(__file__).resolve().parents[2]
+    / "core"
+    / "data"
+    / "cache"
+    / "sector_cache.json"
 )
 SECTOR_CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
 _SECTOR_CACHE: dict[str, str] = {}
