@@ -5,11 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from features.base.repository import BaseRepository
 from features.portfolios.models.Portfolio import Portfolio
-from models.enums import ExchangeType
 
-from .models.Job import Job
 from .models.Transaction import Transaction
-from .models.WatchedSymbol import WatchedSymbol
 
 
 class TransactionRepository(BaseRepository[Transaction]):
@@ -38,20 +35,3 @@ class TransactionRepository(BaseRepository[Transaction]):
         result = await self.db.execute(query)
         return list(result.scalars().all())
 
-    async def ensure_symbol_watched(self, symbol: str, exchange: ExchangeType) -> None:
-        """Add (symbol, exchange) to watched_symbols if not already tracked.
-        Flushes, does not commit."""
-        result = await self.db.execute(
-            select(WatchedSymbol).where(
-                WatchedSymbol.symbol == symbol,
-                WatchedSymbol.exchange == exchange,
-            )
-        )
-        if result.scalar_one_or_none() is None:
-            self.db.add(WatchedSymbol(symbol=symbol, exchange=exchange))
-            await self.db.flush()
-
-
-class JobRepository(BaseRepository[Job]):
-    def __init__(self, db: AsyncSession):
-        super().__init__(Job, db)

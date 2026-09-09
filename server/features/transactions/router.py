@@ -18,18 +18,24 @@ from features.auth.dependencies import get_current_active_user
 from features.auth.models.User import User
 from features.portfolios.repository import PortfolioRepository
 from features.portfolios.service import PortfolioService
+from repositories.job import JobRepository
+from services.job import JobService
 
-from .repository import JobRepository, TransactionRepository
+from .repository import TransactionRepository
 from .schemas.JobSchema import JobStatusResponse
 from .schemas.TransactionsSchema import (
     TransactionCreateSchema,
     TransactionSchema,
     TransactionsListItemSchema,
 )
-from .service import JobService, TransactionService, run_pdf_processing_job
+from .service import TransactionService, run_pdf_processing_job
 
 router = APIRouter(prefix="/transactions", tags=["Transactions"])
 jobs_router = APIRouter(prefix="/jobs", tags=["Jobs"])
+
+MAX_PDF_UPLOAD_BYTES = 2 * 1024 * 1024  # 2 MB
+_UPLOAD_CHUNK_BYTES = 1024 * 1024  # 1 MB
+_PDF_MAGIC = b"%PDF-"
 
 
 def get_transaction_service(db: DBSession) -> TransactionService:
@@ -79,41 +85,79 @@ async def create_transaction_endpoint(
     "/{portfolio_id}/upload/pdf",
     status_code=status.HTTP_202_ACCEPTED,
 )
-async def create_transaction_with_mmk_pdf(
+async def upload_broker_statement_pdf(
     portfolio_id: uuid.UUID,
     background_tasks: BackgroundTasks,
     db: DBSession,
     current_user: User = Depends(get_current_active_user),
     file: UploadFile = File(...),
 ):
-    await PortfolioService(PortfolioRepository(db)).get_owned_or_404(
+    """Upload a brokerage-statement PDF for background parsing. The broker
+    (and therefore which parser runs) is resolved from the portfolio's
+    `broker` field — the caller never chooses a parser directly."""
+    portfolio = await PortfolioService(PortfolioRepository(db)).get_owned_or_404(
         portfolio_id, current_user.id
     )
 
-    if file.size > 2 * 1024 * 1024:
+    # Fail fast (before touching disk) for portfolios whose broker has no
+    # supported parser.
+    job_type = get_transaction_service(db).get_pdf_job_type(portfolio)
+
+    if not (file.filename or "").lower().endswith(".pdf"):
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="File too large"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only .pdf files are accepted.",
+        )
+    if file.content_type not in ("application/pdf", "application/octet-stream"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only PDF files are accepted.",
         )
 
-    if not file.file:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Empty file"
-        )
+    # Generated filename — never trust the client-supplied filename for the
+    # on-disk path (path traversal / arbitrary filename injection).
+    temp_file_path = os.path.join(tempfile.gettempdir(), f"{uuid.uuid4().hex}.pdf")
 
-    temp_file_path = os.path.join(
-        tempfile.gettempdir(), f"{uuid.uuid4()}_{file.filename}"
+    size = 0
+    try:
+        with open(temp_file_path, "wb") as temp_file:
+            while chunk := await file.read(_UPLOAD_CHUNK_BYTES):
+                size += len(chunk)
+                if size > MAX_PDF_UPLOAD_BYTES:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="File too large (max 2 MB).",
+                    )
+                temp_file.write(chunk)
+
+        if size == 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Empty file"
+            )
+
+        with open(temp_file_path, "rb") as temp_file:
+            if temp_file.read(len(_PDF_MAGIC)) != _PDF_MAGIC:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="File is not a valid PDF.",
+                )
+    except HTTPException:
+        if os.path.exists(temp_file_path):
+            os.remove(temp_file_path)
+        raise
+
+    job = await get_job_service(db).start_pdf_processing(
+        portfolio_id, temp_file_path, job_type
     )
 
-    with open(temp_file_path, "wb") as temp_file:
-        temp_file.write(file.file.read())
-
-    job = await get_job_service(db).start_pdf_processing(portfolio_id, temp_file_path)
+    await db.commit()
 
     background_tasks.add_task(
         run_pdf_processing_job,
         portfolio_id=portfolio_id,
         file_path=temp_file_path,
         job_id=job.id,
+        broker=portfolio.broker,
     )
 
     return {
@@ -127,5 +171,24 @@ async def create_transaction_with_mmk_pdf(
     response_model=JobStatusResponse,
     status_code=status.HTTP_200_OK,
 )
-async def get_job_status(job_id: uuid.UUID, db: DBSession):
-    return await get_job_service(db).get_or_404(job_id)
+async def get_job_status(
+    job_id: uuid.UUID,
+    db: DBSession,
+    current_user: User = Depends(get_current_active_user),
+):
+    job = await get_job_service(db).get_or_404(job_id)
+
+    # Jobs have no direct owner column — the owning portfolio_id lives in
+    # the job payload, so authorize by resolving it back to a portfolio
+    # the current user owns. Without this, any authenticated user could
+    # poll any job by guessing/enumerating UUIDs.
+    portfolio_id = (job.payload or {}).get("portfolio_id")
+    if portfolio_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Job not found"
+        )
+    await PortfolioService(PortfolioRepository(db)).get_owned_or_404(
+        uuid.UUID(portfolio_id), current_user.id
+    )
+
+    return job

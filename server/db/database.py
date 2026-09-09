@@ -15,7 +15,10 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from core.config import settings
 
-engine = create_async_engine(settings.SQLALCHEMY_DATABASE_URI)
+engine = create_async_engine(
+    settings.SQLALCHEMY_DATABASE_URI,
+    pool_pre_ping=True,
+)
 
 AsyncSessionLocal = async_sessionmaker(
     bind=engine,
