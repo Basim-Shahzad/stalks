@@ -3,7 +3,7 @@ from datetime import datetime
 
 from db.database import Base
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import String, Enum, JSON
+from sqlalchemy import DateTime, String, Enum, JSON
 
 
 class JobStatus(enum.Enum):
@@ -21,8 +21,8 @@ class Job(Base):
     status: Mapped[JobStatus] = mapped_column(
         Enum(JobStatus), nullable=False, default=JobStatus.PENDING
     )
-    started_at: Mapped[datetime] = mapped_column(nullable=True)
-    completed_at: Mapped[datetime] = mapped_column(nullable=True)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     retry_count: Mapped[int] = mapped_column(nullable=False, default=0)
     max_retries: Mapped[int] = mapped_column(nullable=False, default=3)
     error_message: Mapped[str] = mapped_column(String(255), nullable=True)
