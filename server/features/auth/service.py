@@ -33,7 +33,7 @@ _DUMMY_PASSWORD_HASH = hash_password("dummy-timing-password")
 
 
 def _cookie_path() -> str:
-    return "/api/v1/auth"
+    return "/"
 
 
 class AuthService(BaseService[User]):

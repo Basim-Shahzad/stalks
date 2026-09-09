@@ -7,7 +7,7 @@ from features.strategies.router import router as strategies_router
 
 api_router = APIRouter()
 
-api_router.include_router(auth_router, tags=["auth"])
+api_router.include_router(auth_router)
 api_router.include_router(portfolios_router)
 api_router.include_router(transactions_router)
 api_router.include_router(jobs_router)
