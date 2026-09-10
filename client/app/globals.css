@@ -1,2 +1,178 @@
 @import "tailwindcss";
-@import "@heroui/styles"; 
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+    --font-heading: var(--font-sans);
+    --font-sans: var(--font-sans);
+    --color-sidebar-ring: var(--sidebar-ring);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar: var(--sidebar);
+    --color-chart-5: var(--chart-5);
+    --color-chart-4: var(--chart-4);
+    --color-chart-3: var(--chart-3);
+    --color-chart-2: var(--chart-2);
+    --color-chart-1: var(--chart-1);
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-border-subtle: var(--border-subtle);
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+    --color-success: var(--success);
+    --color-success-foreground: var(--success-foreground);
+    --color-warning: var(--warning);
+    --color-warning-foreground: var(--warning-foreground);
+    --color-info: var(--info);
+    --color-info-foreground: var(--info-foreground);
+    --color-positive: var(--positive);
+    --color-negative: var(--negative);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+    --radius-2xl: calc(var(--radius) * 1.8);
+    --radius-3xl: calc(var(--radius) * 2.2);
+    --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/*
+ * Stalks brand palette — single source of truth for all colors.
+ * The product is dark-only today, so :root carries the dark brand theme;
+ * .dark is kept identical so theme-aware components (e.g. next-themes) still work.
+ */
+:root {
+    --background: #070707;
+    --foreground: #f5f5f5;
+    --card: #111213;
+    --card-foreground: #f5f5f5;
+    --popover: #111213;
+    --popover-foreground: #f5f5f5;
+
+    --primary: #00ff87;
+    --primary-foreground: #070707;
+    --secondary: #1c1d1f;
+    --secondary-foreground: #f5f5f5;
+    --muted: #161718;
+    --muted-foreground: #888888;
+    --accent: #161718;
+    --accent-foreground: #f5f5f5;
+
+    --destructive: #ff4d4d;
+    --destructive-foreground: #070707;
+    --success: #00ff87;
+    --success-foreground: #070707;
+    --warning: #ff9f43;
+    --warning-foreground: #070707;
+    --info: #4da6ff;
+    --info-foreground: #070707;
+
+    /* semantic gain/loss colors, used across transactions & portfolio analytics */
+    --positive: #00ff87;
+    --negative: #ff4d4d;
+
+    --border: #2e3033;
+    --border-subtle: #1a1b1c;
+    --input: #2e3033;
+    --ring: #00ff87;
+
+    --chart-1: #00ff87;
+    --chart-2: #ff4d4d;
+    --chart-3: #4da6ff;
+    --chart-4: #ff9f43;
+    --chart-5: #a29bfe;
+
+    --radius: 0.75rem;
+
+    --sidebar: #070707;
+    --sidebar-foreground: #f5f5f5;
+    --sidebar-primary: #00ff87;
+    --sidebar-primary-foreground: #070707;
+    --sidebar-accent: #161718;
+    --sidebar-accent-foreground: #f5f5f5;
+    --sidebar-border: #2e3033;
+    --sidebar-ring: #00ff87;
+}
+
+.dark {
+    --background: #070707;
+    --foreground: #f5f5f5;
+    --card: #111213;
+    --card-foreground: #f5f5f5;
+    --popover: #111213;
+    --popover-foreground: #f5f5f5;
+
+    --primary: #00ff87;
+    --primary-foreground: #070707;
+    --secondary: #1c1d1f;
+    --secondary-foreground: #f5f5f5;
+    --muted: #161718;
+    --muted-foreground: #888888;
+    --accent: #161718;
+    --accent-foreground: #f5f5f5;
+
+    --destructive: #ff4d4d;
+    --destructive-foreground: #070707;
+    --success: #00ff87;
+    --success-foreground: #070707;
+    --warning: #ff9f43;
+    --warning-foreground: #070707;
+    --info: #4da6ff;
+    --info-foreground: #070707;
+
+    --positive: #00ff87;
+    --negative: #ff4d4d;
+
+    --border: #2e3033;
+    --border-subtle: #1a1b1c;
+    --input: #2e3033;
+    --ring: #00ff87;
+
+    --chart-1: #00ff87;
+    --chart-2: #ff4d4d;
+    --chart-3: #4da6ff;
+    --chart-4: #ff9f43;
+    --chart-5: #a29bfe;
+
+    --sidebar: #070707;
+    --sidebar-foreground: #f5f5f5;
+    --sidebar-primary: #00ff87;
+    --sidebar-primary-foreground: #070707;
+    --sidebar-accent: #161718;
+    --sidebar-accent-foreground: #f5f5f5;
+    --sidebar-border: #2e3033;
+    --sidebar-ring: #00ff87;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    }
+  body {
+    @apply bg-background text-foreground;
+    }
+  html {
+    @apply font-sans;
+    }
+}
