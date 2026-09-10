@@ -1,6 +1,6 @@
 import api from "@/services/api.service";
 import { useQuery } from "@tanstack/react-query";
-import { OHLCV } from "@/components/CandleStickChart";
+import { OHLCV } from "./components/CandlestickChart";
 
 type MarketDataType = {
    exchange: string;
