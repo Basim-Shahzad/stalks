@@ -1,6 +1,6 @@
 import api from "@/services/api.service";
-import { Transaction, TransactionList } from "../types/transactions.types";
-import { TransactionFilters } from "@/lib/hooks/useTransactionFilters";
+import { Transaction, TransactionList } from "./types";
+import { TransactionFilters } from "./hooks/useTransactionFilters";
 
 export const useTransactionApi = {
    getAll: async (filters?: TransactionFilters) => {

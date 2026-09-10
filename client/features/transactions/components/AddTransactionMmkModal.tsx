@@ -2,9 +2,9 @@
 
 import React, { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { usePortfolios } from "@/lib/queries/portfolioQueries";
-import { useTransactionApi } from "@/hooks/useTransactionApi";
-import { useTransactionsCreatePdf } from "@/lib/contexts/TransactionsCreatePdf";
+import { usePortfolios } from "@/features/portfolios/hooks";
+import { useTransactionApi } from "../api";
+import { useTransactionsCreatePdf } from "../context/TransactionsCreatePdfContext";
 
 type AddTransactionMmkModalProps = {
    open: boolean;

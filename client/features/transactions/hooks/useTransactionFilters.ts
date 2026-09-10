@@ -1,6 +1,6 @@
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useCallback, useMemo } from "react";
-import { TransactionSide } from "@/types/transactions.types";
+import { TransactionSide } from "../types";
 
 export type TransactionFilters = {
    portfolios?: Set<string>;

@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { PortfolioList } from "@/types/portfolios.types";
-import { TransactionSide } from "@/types/transactions.types";
-import { TransactionFilters } from "@/lib/hooks/useTransactionFilters";
+import { PortfolioList } from "@/features/portfolios/types";
+import { TransactionSide } from "../types";
+import { TransactionFilters } from "../hooks/useTransactionFilters";
 
 const ALL_SIDES: TransactionSide[] = ["BUY", "SELL", "DEPOSIT", "WITHDRAW", "INCOME", "FEE"];
 

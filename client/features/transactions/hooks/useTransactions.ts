@@ -1,7 +1,7 @@
-import { useTransactionApi } from "@/hooks/useTransactionApi";
+import { useTransactionApi } from "../api";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Transaction } from "@/types/transactions.types";
-import { TransactionFilters } from "@/lib/hooks/useTransactionFilters";
+import { Transaction } from "../types";
+import { TransactionFilters } from "./useTransactionFilters";
 
 export function useTransactions(filters?: TransactionFilters) {
    return useQuery({

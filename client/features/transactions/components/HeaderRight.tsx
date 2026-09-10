@@ -5,9 +5,9 @@ import { SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import FiltersModal from "./FiltersModal";
-import { usePortfolios } from "@/lib/queries/portfolioQueries";
-import { useTransactionFilters } from "@/lib/hooks/useTransactionFilters";
-import { DropdownButton } from "@/components/action-menu";
+import { usePortfolios } from "@/features/portfolios/hooks";
+import { useTransactionFilters } from "../hooks/useTransactionFilters";
+import { DropdownButton } from "./action-menu";
 import AddTransactionMmkModal from "./AddTransactionMmkModal";
 
 const ghostCls =

@@ -1,7 +1,6 @@
-import React from "react";
-import Table from "./components/Table";
+import Table from "@/features/transactions/components/Table";
 
-const TransactionsPage = () => {
+export default function TransactionsPage() {
    return (
       <div className="text-white">
          <h1>
@@ -9,6 +8,4 @@ const TransactionsPage = () => {
          </h1>
       </div>
    );
-};
-
-export default TransactionsPage;
+}

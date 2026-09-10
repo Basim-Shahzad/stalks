@@ -3,10 +3,10 @@
 import { useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Transaction, TransactionSide } from "@/types/transactions.types";
-import { usePortfolios } from "@/lib/queries/portfolioQueries";
+import { Transaction, TransactionSide } from "../types";
+import { usePortfolios } from "@/features/portfolios/hooks";
 import { queryClient } from "@/app/providers";
-import { useTransactionApi } from "@/hooks/useTransactionApi";
+import { useTransactionApi } from "../api";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

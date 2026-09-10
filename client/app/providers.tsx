@@ -2,11 +2,11 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode, useEffect } from "react";
-import { useAuth } from "@/hooks/useAuth";
-import { useAuthStore } from "@/stores/useAuthStore";
+import { useAuth } from "@/features/auth/api";
+import { useAuthStore } from "@/features/auth/store";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { Toaster } from "@/components/ui/sonner";
-import { TransactionsCreatePdfProvider } from "@/lib/contexts/TransactionsCreatePdf";
+import { TransactionsCreatePdfProvider } from "@/features/transactions/context/TransactionsCreatePdfContext";
 
 let authInitialized = false;
 

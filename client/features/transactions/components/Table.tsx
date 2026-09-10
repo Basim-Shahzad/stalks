@@ -10,9 +10,9 @@ import {
    type VisibilityState,
    flexRender,
 } from "@tanstack/react-table";
-import { useTransactions } from "@/lib/queries/transactionQueries";
-import { useTransactionFilters } from "@/lib/hooks/useTransactionFilters";
-import type { Transaction, TransactionSide } from "@/types/transactions.types";
+import { useTransactions } from "../hooks/useTransactions";
+import { useTransactionFilters } from "../hooks/useTransactionFilters";
+import type { Transaction, TransactionSide } from "../types";
 import { Spinner } from "@/components/ui/spinner";
 
 // ─── Side badge config ────────────────────────────────────────────────────────
