@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import CandlestickChart from "./CandleStickChart";
-import "../../styles/Hero.css";
+import CandlestickChart from "./CandlestickChart";
+import "./Hero.css";
 
 // ── Hero ──────────────────────────────────────────────────────────────────────
 const Hero = () => {
