@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { SlidersHorizontal } from "lucide-react";
-import { Button, Popover, PopoverTrigger, PopoverContent } from "@heroui/react";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import FiltersModal from "./FiltersModal";
 import { usePortfolios } from "@/lib/queries/portfolioQueries";
 import { useTransactionFilters } from "@/lib/hooks/useTransactionFilters";
@@ -10,8 +11,8 @@ import { DropdownButton } from "@/components/action-menu";
 import AddTransactionMmkModal from "./AddTransactionMmkModal";
 
 const ghostCls =
-   "h-6 min-w-0 px-2.5 rounded bg-[#1c1d1f] border border-[#2e3033] text-[#a0a0a0] " +
-   "hover:bg-[#222426] hover:text-white hover:border-[#3a3d40] uppercase gap-2 transition-all duration-100";
+   "h-6 min-w-0 px-2.5 rounded bg-secondary border border-border text-muted-foreground " +
+   "hover:bg-accent hover:text-foreground hover:border-border uppercase gap-2 transition-all duration-100";
 
 type HeaderRightProps = {
    setIsAddTransactionModalOpen: (open: boolean) => void;
@@ -27,19 +28,17 @@ const HeaderRight = ({ setIsAddTransactionModalOpen }: HeaderRightProps) => {
 
    return (
       <div className="flex items-center gap-1.5">
-         <Popover isOpen={isFilterModalOpen} onOpenChange={(open) => setIsFilterModalOpen(open)}>
-            <PopoverTrigger>
-               <Button variant="ghost" className={ghostCls}>
-                  <SlidersHorizontal className="w-2.5 h-2.5 shrink-0" />
-                  Filter
-                  {activeCount > 0 && (
-                     <span className="flex items-center justify-center w-3.5 h-3.5 rounded-full bg-[#00ff87] text-[#070707] text-[9px] font-bold leading-none">
-                        {activeCount}
-                     </span>
-                  )}
-               </Button>
+         <Popover open={isFilterModalOpen} onOpenChange={(open) => setIsFilterModalOpen(open)}>
+            <PopoverTrigger render={<Button variant="ghost" className={ghostCls} />}>
+               <SlidersHorizontal className="w-2.5 h-2.5 shrink-0" />
+               Filter
+               {activeCount > 0 && (
+                  <span className="flex items-center justify-center w-3.5 h-3.5 rounded-full bg-primary text-primary-foreground text-[9px] font-bold leading-none">
+                     {activeCount}
+                  </span>
+               )}
             </PopoverTrigger>
-            <PopoverContent className="bg-[#111213] border border-[#2e3033] p-0 rounded-xl shadow-none">
+            <PopoverContent className="bg-card border border-border p-0 rounded-xl shadow-none w-auto">
                <FiltersModal
                   portfolios={portfolios ?? []}
                   filters={filters}
@@ -53,7 +52,7 @@ const HeaderRight = ({ setIsAddTransactionModalOpen }: HeaderRightProps) => {
             </PopoverContent>
          </Popover>
 
-         <div className="w-px h-3.5 bg-[#2e3033] mx-0.5" />
+         <div className="w-px h-3.5 bg-border mx-0.5" />
 
          <DropdownButton
             label="Add"

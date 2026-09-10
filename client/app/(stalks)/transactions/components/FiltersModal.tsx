@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Chip } from "@heroui/react";
 import { PortfolioList } from "@/types/portfolios.types";
 import { TransactionSide } from "@/types/transactions.types";
 import { TransactionFilters } from "@/lib/hooks/useTransactionFilters";
@@ -58,29 +57,20 @@ const FiltersModal: React.FC<FiltersModalProps> = ({ portfolios, filters, onAppl
 
    const draftCount = draft.portfolios.size + draft.sides.size;
 
-   const chipStyle = (active: boolean): React.CSSProperties => ({
-      background: active ? "#001a0f" : "#161718",
-      border: `0.5px solid ${active ? "#00ff87" : "#2e3033"}`,
-      color: active ? "#00ff87" : "#888888",
-      borderRadius: "20px",
-      fontSize: "12px",
-      fontWeight: 500,
-      cursor: "pointer",
-      transition: "all 0.15s ease",
-   });
+   const chipCls = (active: boolean) =>
+      `rounded-[20px] text-xs font-medium cursor-pointer transition-all duration-150 px-2.5 py-1 border ${
+         active
+            ? "bg-primary/10 border-primary text-primary"
+            : "bg-muted border-border text-muted-foreground hover:text-foreground"
+      }`;
 
    return (
-      <div className="flex flex-col gap-4 p-5 w-[260px]" style={{ fontFamily: "var(--font-sans, system-ui)" }}>
+      <div className="flex flex-col gap-4 p-5 w-[260px] font-sans">
          {/* Header */}
-         <div className="flex items-center justify-between pb-3" style={{ borderBottom: "0.5px solid #2e3033" }}>
-            <span className="text-sm font-medium tracking-widest uppercase" style={{ color: "#f5f5f5" }}>
-               Filters
-            </span>
+         <div className="flex items-center justify-between pb-3 border-b border-border">
+            <span className="text-sm font-medium tracking-widest uppercase text-foreground">Filters</span>
             {draftCount > 0 && (
-               <span
-                  className="flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-bold"
-                  style={{ background: "#00ff87", color: "#070707" }}
-               >
+               <span className="flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-bold bg-primary text-primary-foreground">
                   {draftCount}
                </span>
             )}
@@ -88,61 +78,53 @@ const FiltersModal: React.FC<FiltersModalProps> = ({ portfolios, filters, onAppl
 
          {/* Portfolios */}
          <div className="flex flex-col gap-2">
-            <span className="text-[10px] font-medium tracking-widest uppercase" style={{ color: "#444444" }}>
+            <span className="text-[10px] font-medium tracking-widest uppercase text-muted-foreground/60">
                Portfolios
             </span>
             <div className="flex flex-wrap gap-1.5">
                {portfolios.map((p) => (
-                  <Chip
+                  <button
+                     type="button"
                      key={p.id}
-                     size="sm"
-                     variant="soft"
                      onClick={() => togglePortfolio(p.id)}
-                     style={chipStyle(draft.portfolios.has(p.id))}
+                     className={chipCls(draft.portfolios.has(p.id))}
                   >
                      {p.name}
-                  </Chip>
+                  </button>
                ))}
             </div>
          </div>
 
          {/* Sides */}
          <div className="flex flex-col gap-2">
-            <span className="text-[10px] font-medium tracking-widest uppercase" style={{ color: "#444444" }}>
+            <span className="text-[10px] font-medium tracking-widest uppercase text-muted-foreground/60">
                Transaction side
             </span>
             <div className="flex flex-wrap gap-1.5">
                {ALL_SIDES.map((side) => (
-                  <Chip
+                  <button
+                     type="button"
                      key={side}
-                     size="sm"
-                     variant="soft"
                      onClick={() => toggleSide(side)}
-                     style={chipStyle(draft.sides.has(side))}
+                     className={chipCls(draft.sides.has(side))}
                   >
                      {SIDE_ICONS[side]} {side}
-                  </Chip>
+                  </button>
                ))}
             </div>
          </div>
 
          {/* Footer */}
-         <div className="flex items-center justify-between pt-3" style={{ borderTop: "0.5px solid #2e3033" }}>
+         <div className="flex items-center justify-between pt-3 border-t border-border">
             <button
                onClick={handleClear}
-               className="text-[11px] tracking-wide bg-transparent border-none cursor-pointer transition-colors"
-               style={{ color: "#444444" }}
-               onMouseEnter={(e) => (e.currentTarget.style.color = "#888888")}
-               onMouseLeave={(e) => (e.currentTarget.style.color = "#444444")}
+               className="text-[11px] tracking-wide bg-transparent border-none cursor-pointer transition-colors text-muted-foreground/60 hover:text-muted-foreground"
             >
                Clear all
             </button>
             <button
                onClick={() => onApply(draft)}
-               className="text-xs font-medium px-3.5 py-1.5 rounded-md transition-opacity"
-               style={{ background: "#00ff87", color: "#070707", border: "none", cursor: "pointer" }}
-               onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
-               onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+               className="text-xs font-medium px-3.5 py-1.5 rounded-md transition-opacity bg-primary text-primary-foreground border-none cursor-pointer hover:opacity-85"
             >
                Apply →
             </button>

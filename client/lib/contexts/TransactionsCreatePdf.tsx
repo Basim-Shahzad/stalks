@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import api from "@/services/api.service";
-import { toast } from "@heroui/react";
+import { toast } from "sonner";
 import { queryClient } from "@/app/providers";
 
 interface TransactionsCreatePdfContextType {

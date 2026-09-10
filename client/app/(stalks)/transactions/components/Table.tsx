@@ -13,17 +13,17 @@ import {
 import { useTransactions } from "@/lib/queries/transactionQueries";
 import { useTransactionFilters } from "@/lib/hooks/useTransactionFilters";
 import type { Transaction, TransactionSide } from "@/types/transactions.types";
-import { Spinner } from "@heroui/react";
+import { Spinner } from "@/components/ui/spinner";
 
 // ─── Side badge config ────────────────────────────────────────────────────────
 
 const SIDE_CONFIG: Record<TransactionSide, { icon: string; color: string; bg: string; border: string }> = {
-   BUY: { icon: "↗", color: "#00ff87", bg: "#001a0f", border: "#00ff87" },
-   SELL: { icon: "↙", color: "#ff4d4d", bg: "#1a0000", border: "#ff4d4d" },
-   DEPOSIT: { icon: "↓", color: "#4da6ff", bg: "#00091a", border: "#4da6ff" },
-   WITHDRAW: { icon: "↑", color: "#ff9f43", bg: "#1a0e00", border: "#ff9f43" },
-   INCOME: { icon: "$", color: "#a29bfe", bg: "#0d0a1a", border: "#a29bfe" },
-   FEE: { icon: "%", color: "#636e72", bg: "#111213", border: "#2e3033" },
+   BUY: { icon: "↗", color: "var(--primary)", bg: "color-mix(in srgb, var(--primary) 12%, var(--background))", border: "var(--primary)" },
+   SELL: { icon: "↙", color: "var(--destructive)", bg: "color-mix(in srgb, var(--destructive) 12%, var(--background))", border: "var(--destructive)" },
+   DEPOSIT: { icon: "↓", color: "var(--info)", bg: "color-mix(in srgb, var(--info) 12%, var(--background))", border: "var(--info)" },
+   WITHDRAW: { icon: "↑", color: "var(--warning)", bg: "color-mix(in srgb, var(--warning) 12%, var(--background))", border: "var(--warning)" },
+   INCOME: { icon: "$", color: "var(--chart-5)", bg: "color-mix(in srgb, var(--chart-5) 12%, var(--background))", border: "var(--chart-5)" },
+   FEE: { icon: "%", color: "var(--muted-foreground)", bg: "var(--card)", border: "var(--border)" },
 };
 
 const fmt = {
@@ -44,7 +44,7 @@ const COLUMNS: ColumnDef<Transaction>[] = [
          new Date(a.original.transactionDate).getTime() - new Date(b.original.transactionDate).getTime(),
       cell: ({ getValue }) => (
          <span
-            style={{ color: "#888888", fontSize: "11px", fontVariantNumeric: "tabular-nums", letterSpacing: "0.03em" }}
+            style={{ color: "var(--muted-foreground)", fontSize: "11px", fontVariantNumeric: "tabular-nums", letterSpacing: "0.03em" }}
          >
             {fmt.date(getValue<string>())}
          </span>
@@ -55,7 +55,7 @@ const COLUMNS: ColumnDef<Transaction>[] = [
       accessorKey: "symbol",
       header: "SYMBOL",
       cell: ({ getValue }) => (
-         <span style={{ color: "#f5f5f5", fontWeight: 600, fontSize: "13px", letterSpacing: "0.05em" }}>
+         <span style={{ color: "var(--foreground)", fontWeight: 600, fontSize: "13px", letterSpacing: "0.05em" }}>
             {getValue<string>()}
          </span>
       ),
@@ -67,7 +67,7 @@ const COLUMNS: ColumnDef<Transaction>[] = [
       cell: ({ getValue }) => (
          <span
             style={{
-               color: "#888888",
+               color: "var(--muted-foreground)",
                fontSize: "12px",
                maxWidth: "160px",
                display: "block",
@@ -113,7 +113,7 @@ const COLUMNS: ColumnDef<Transaction>[] = [
       accessorKey: "quantity",
       header: "QTY",
       cell: ({ getValue }) => (
-         <span style={{ color: "#c8c8c8", fontSize: "12px", fontVariantNumeric: "tabular-nums" }}>
+         <span style={{ color: "var(--foreground)", fontSize: "12px", fontVariantNumeric: "tabular-nums" }}>
             {fmt.number(getValue<number>())}
          </span>
       ),
@@ -123,7 +123,7 @@ const COLUMNS: ColumnDef<Transaction>[] = [
       accessorKey: "rate",
       header: "RATE",
       cell: ({ getValue }) => (
-         <span style={{ color: "#c8c8c8", fontSize: "12px", fontVariantNumeric: "tabular-nums" }}>
+         <span style={{ color: "var(--foreground)", fontSize: "12px", fontVariantNumeric: "tabular-nums" }}>
             {fmt.currency(getValue<number>())}
          </span>
       ),
@@ -134,7 +134,7 @@ const COLUMNS: ColumnDef<Transaction>[] = [
       header: "COMMISSION",
       enableSorting: false,
       cell: ({ getValue }) => (
-         <span style={{ color: "#555555", fontSize: "12px", fontVariantNumeric: "tabular-nums" }}>
+         <span style={{ color: "var(--muted-foreground)", fontSize: "12px", fontVariantNumeric: "tabular-nums" }}>
             {fmt.currency(getValue<number>())}
          </span>
       ),
@@ -152,7 +152,7 @@ const COLUMNS: ColumnDef<Transaction>[] = [
          return (
             <span
                style={{
-                  color: isPositive ? "#00ff87" : isNegative ? "#ff4d4d" : "#c8c8c8",
+                  color: isPositive ? "var(--primary)" : isNegative ? "var(--destructive)" : "var(--foreground)",
                   fontSize: "13px",
                   fontWeight: 600,
                   fontVariantNumeric: "tabular-nums",
@@ -200,14 +200,14 @@ const TransactionsTable = () => {
    if (isLoading) {
       return (
          <div className="flex items-center justify-center py-16">
-            <Spinner size="sm" />
+            <Spinner className="size-5" />
          </div>
       );
    }
 
    if (isError) {
       return (
-         <div className="flex items-center justify-center py-16" style={{ color: "#ff4d4d", fontSize: "13px" }}>
+         <div className="flex items-center justify-center py-16" style={{ color: "var(--destructive)", fontSize: "13px" }}>
             Failed to load transactions.
          </div>
       );
@@ -216,13 +216,13 @@ const TransactionsTable = () => {
    const rows = table.getRowModel().rows;
 
    return (
-      <div style={{ borderRadius: "12px", border: "0.5px solid #2e3033", overflow: "hidden", background: "#0d0e0f" }}>
+      <div style={{ borderRadius: "12px", border: "0.5px solid var(--border)", overflow: "hidden", background: "var(--card)" }}>
          {/* Toolbar */}
          <div
             className="flex items-center justify-between px-4 py-2.5"
-            style={{ borderBottom: "0.5px solid #1a1b1c", background: "#0d0e0f" }}
+            style={{ borderBottom: "0.5px solid var(--border-subtle)", background: "var(--card)" }}
          >
-            <span style={{ color: "white", opacity: 0.6, fontSize: "11px", letterSpacing: "0.05em" }}>
+            <span style={{ color: "var(--foreground)", opacity: 0.6, fontSize: "11px", letterSpacing: "0.05em" }}>
                {rows.length} TRANSACTION{rows.length !== 1 ? "S" : ""}
             </span>
 
@@ -231,15 +231,15 @@ const TransactionsTable = () => {
                <button
                   onClick={() => setShowColumnToggle((v) => !v)}
                   style={{
-                     background: showColumnToggle ? "#1c1d1f" : "transparent",
+                     background: showColumnToggle ? "var(--secondary)" : "transparent",
                      border: "0.5px solid",
-                     borderColor: showColumnToggle ? "#3a3d40" : "#2e3033",
+                     borderColor: showColumnToggle ? "var(--border)" : "var(--border)",
                      borderRadius: "6px",
                      padding: "3px 10px",
                      fontSize: "10px",
                      fontWeight: 500,
                      letterSpacing: "0.08em",
-                     color: showColumnToggle ? "#f5f5f5" : "white",
+                     color: showColumnToggle ? "var(--foreground)" : "var(--foreground)",
                      cursor: "pointer",
                      transition: "all 0.15s ease",
                   }}
@@ -254,8 +254,8 @@ const TransactionsTable = () => {
                         right: 0,
                         top: "calc(100% + 6px)",
                         zIndex: 50,
-                        background: "#111213",
-                        border: "0.5px solid #2e3033",
+                        background: "var(--card)",
+                        border: "0.5px solid var(--border)",
                         borderRadius: "10px",
                         padding: "8px",
                         minWidth: "160px",
@@ -264,12 +264,12 @@ const TransactionsTable = () => {
                   >
                      <div
                         style={{
-                           color: "white",
+                           color: "var(--foreground)",
                            opacity: 0.7,
                            fontSize: "9px",
                            letterSpacing: "0.12em",
                            padding: "4px 8px 8px",
-                           borderBottom: "0.5px solid #1a1b1c",
+                           borderBottom: "0.5px solid var(--border-subtle)",
                            marginBottom: "6px",
                         }}
                      >
@@ -286,17 +286,17 @@ const TransactionsTable = () => {
                               borderRadius: "6px",
                               cursor: "pointer",
                               fontSize: "12px",
-                              color: col.getIsVisible() ? "#c8c8c8" : "#555555",
+                              color: col.getIsVisible() ? "var(--foreground)" : "var(--muted-foreground)",
                               transition: "background 0.1s ease",
                            }}
-                           onMouseEnter={(e) => (e.currentTarget.style.background = "#1a1b1c")}
+                           onMouseEnter={(e) => (e.currentTarget.style.background = "var(--border-subtle)")}
                            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                         >
                            <input
                               type="checkbox"
                               checked={col.getIsVisible()}
                               onChange={col.getToggleVisibilityHandler()}
-                              style={{ accentColor: "#00ff87", width: "12px", height: "12px" }}
+                              style={{ accentColor: "var(--primary)", width: "12px", height: "12px" }}
                            />
                            {COLUMN_LABELS[col.id] ?? col.id}
                         </label>
@@ -311,7 +311,7 @@ const TransactionsTable = () => {
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
                <thead>
                   {table.getHeaderGroups().map((hg) => (
-                     <tr key={hg.id} style={{ borderBottom: "0.5px solid #2e3033", background: "#111213" }}>
+                     <tr key={hg.id} style={{ borderBottom: "0.5px solid var(--border)", background: "var(--card)" }}>
                         {hg.headers.map((header) => {
                            const sorted = header.column.getIsSorted();
                            const canSort = header.column.getCanSort();
@@ -325,7 +325,7 @@ const TransactionsTable = () => {
                                     fontSize: "10px",
                                     fontWeight: 500,
                                     letterSpacing: "0.1em",
-                                    color: sorted ? "#00ff87" : "white",
+                                    color: sorted ? "var(--primary)" : "var(--foreground)",
                                     cursor: canSort ? "pointer" : "default",
                                     userSelect: "none",
                                     whiteSpace: "nowrap",
@@ -354,7 +354,7 @@ const TransactionsTable = () => {
                            style={{
                               padding: "48px 16px",
                               textAlign: "center",
-                              color: "#444444",
+                              color: "var(--muted-foreground)",
                               fontSize: "12px",
                               letterSpacing: "0.05em",
                            }}
@@ -366,8 +366,8 @@ const TransactionsTable = () => {
                      rows.map((row) => (
                         <tr
                            key={row.id}
-                           style={{ borderBottom: "0.5px solid #1a1b1c", transition: "background 0.1s ease" }}
-                           onMouseEnter={(e) => (e.currentTarget.style.background = "#111213")}
+                           style={{ borderBottom: "0.5px solid var(--border-subtle)", transition: "background 0.1s ease" }}
+                           onMouseEnter={(e) => (e.currentTarget.style.background = "var(--card)")}
                            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                         >
                            {row.getVisibleCells().map((cell) => (

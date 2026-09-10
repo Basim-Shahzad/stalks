@@ -26,13 +26,13 @@ export function DropdownButton({ label, items, onClick }: DropdownButtonProps) {
 
    return (
       <div ref={ref} className="relative flex items-center">
-         <div className="flex items-center cursor-pointer bg-[#00ff87] text-[#070707] h-6 rounded uppercase font-semibold transition-all duration-100">
+         <div className="flex items-center cursor-pointer bg-primary text-primary-foreground h-6 rounded uppercase font-semibold transition-all duration-100">
             <button className="flex items-center gap-1 px-2 h-full cursor-pointer" onClick={() => onClick(true)}>
                <Plus className="w-3 h-3 shrink-0" />
                {label}
             </button>
 
-            <div className="w-px h-4 bg-[#070707]/20" />
+            <div className="w-px h-4 bg-primary-foreground/20" />
 
             <button className="flex items-center px-1 h-full cursor-pointer" onClick={() => setOpen((v) => !v)}>
                <ChevronDown className="w-3 h-3 shrink-0" />
@@ -40,11 +40,11 @@ export function DropdownButton({ label, items, onClick }: DropdownButtonProps) {
          </div>
 
          {open && (
-            <div className="absolute top-full left-[-100] mt-2 min-w-full text-[#00ff87] bg-[#070707] rounded shadow-lg z-50 overflow-hidden">
+            <div className="absolute top-full left-[-100] mt-2 min-w-full text-primary bg-background border border-border rounded shadow-lg z-50 overflow-hidden">
                {items.map((item, i) => (
                   <button
                      key={i}
-                     className="flex w-full items-center px-4 py-2 text-xs uppercase font-semibold whitespace-nowrap cursor-pointer hover:bg-[#00ff87]/10 transition-all duration-100"
+                     className="flex w-full items-center px-4 py-2 text-xs uppercase font-semibold whitespace-nowrap cursor-pointer hover:bg-primary/10 transition-all duration-100"
                      onClick={() => {
                         item.onClick();
                         setOpen(false);

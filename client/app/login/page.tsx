@@ -1,6 +1,9 @@
 "use client";
 
-import { Button, Input, Label, toast } from "@heroui/react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 import Link from "next/link";
 import Image from "next/image";
 import { GoogleIcon } from "@/components/GoogleIcon";
@@ -23,15 +26,15 @@ const LoginPage = () => {
          router.push("/portfolio");
       },
       onError: () => {
-         toast.danger("Invalid Credentials");
+         toast.error("Invalid Credentials");
       },
    });
 
    return (
-      <div className="bg-black h-screen relative">
+      <div className="bg-background h-screen relative">
          <nav className="flex items-center gap-1.5 px-6 py-3">
             <Image src="/logo.png" alt="Stalks Logo" width={48} height={48} className="select-none" />
-            <h1 className="text-[33px] font-medium tracking-tight text-white antialiased select-none">Stalks</h1>
+            <h1 className="text-[33px] font-medium tracking-tight text-foreground antialiased select-none">Stalks</h1>
          </nav>
 
          {/* Background atmosphere - using CSS module for complex gradients */}
@@ -39,10 +42,10 @@ const LoginPage = () => {
 
          <div className="flex items-center justify-center mt-20">
             <div className="flex flex-col items-center justify-center w-full max-w-md px-4">
-               <h1 className="text-3xl flex justify-center font-semibold text-white text-center">Log in to Stalks</h1>
+               <h1 className="text-3xl flex justify-center font-semibold text-foreground text-center">Log in to Stalks</h1>
 
                <div className="flex mt-8 w-full justify-center">
-                  <Button className="w-full mt-2" variant="tertiary">
+                  <Button className="w-full mt-2" variant="secondary">
                      <GoogleIcon />
                      Sign in with Google
                   </Button>
@@ -52,9 +55,9 @@ const LoginPage = () => {
 
                <div className="w-full flex flex-col gap-2.5">
                   <div className="flex flex-col gap-1 w-full">
-                     <Label className="text-sm text-white/60">Email</Label>
+                     <Label className="text-sm text-muted-foreground">Email</Label>
                      <Input
-                        className="w-full text-white bg-[#22D07A]/5 outline-none ring-0 border border-[#22D07A]/20"
+                        className="w-full text-foreground bg-primary/5 outline-none ring-0 border border-primary/20"
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
@@ -62,9 +65,9 @@ const LoginPage = () => {
                      />
                   </div>
                   <div className="flex flex-col gap-1 w-full">
-                     <Label className="text-sm text-white/60">Password</Label>
+                     <Label className="text-sm text-muted-foreground">Password</Label>
                      <Input
-                        className="w-full text-white bg-[#22D07A]/5 outline-none ring-0 border border-[#22D07A]/20"
+                        className="w-full text-foreground bg-primary/5 outline-none ring-0 border border-primary/20"
                         placeholder="••••••••"
                         type="password"
                         value={password}
@@ -73,15 +76,15 @@ const LoginPage = () => {
                      />
                   </div>
 
-                  <Link href="/forgot-password" className="text-center text-sm text-[#22D07A] mt-1 hover:underline">
+                  <Link href="/forgot-password" className="text-center text-sm text-primary mt-1 hover:underline">
                      Forgot password?
                   </Link>
                   <Button
                      className="w-full mt-3"
-                     variant="tertiary"
+                     variant="secondary"
                      type="submit"
-                     isPending={isPending}
-                     onPress={() => login({ email, password })}
+                     disabled={isPending}
+                     onClick={() => login({ email, password })}
                   >
                      {isPending ? "Logging in..." : "Log in"}
                   </Button>

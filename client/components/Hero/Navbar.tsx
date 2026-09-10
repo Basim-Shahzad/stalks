@@ -4,7 +4,7 @@ import { useState, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
-import { Button } from "@heroui/react";
+import { Button } from "@/components/ui/button";
 import ProductMegaMenu from "./ProductMegaMenu";
 
 const NAV_ITEMS = [
@@ -30,14 +30,14 @@ const Navbar = () => {
    };
 
    return (
-      <nav className="sticky top-0 z-50 flex h-16 w-full items-center justify-between border-b border-white/6 bg-black/95 px-6 font-sans backdrop-blur-md">
+      <nav className="sticky top-0 z-50 flex h-16 w-full items-center justify-between border-b border-border bg-background/95 px-6 font-sans backdrop-blur-md">
          <div className="flex items-center">
             <Link href="/" className="flex items-center gap-3 transition-transform active:scale-95">
                <div className="relative">
-                  <div className="absolute -inset-1 rounded-lg bg-[#22d07a]/20 blur-sm"></div>
+                  <div className="absolute -inset-1 rounded-lg bg-primary/20 blur-sm"></div>
                   <Image src="/logo.png" width={32} height={32} alt="Logo" />
                </div>
-               <span className="text-[22px] font-medium tracking-tight text-white">Stalks</span>
+               <span className="text-[22px] font-medium tracking-tight text-foreground">Stalks</span>
             </Link>
          </div>
 
@@ -46,7 +46,7 @@ const Navbar = () => {
                {NAV_ITEMS.map((link) => {
                   const isActive = pathname === link.path;
                   const baseStyles = `relative rounded-full px-4 py-1.5 text-[13px] font-medium transition-all duration-300 ${
-                     isActive ? "text-[#22d07a]" : "text-[#8a8f9f] hover:text-white hover:bg-white/3"
+                     isActive ? "text-primary" : "text-muted-foreground hover:text-foreground hover:bg-accent/30"
                   }`;
 
                   if (link.isMega) {
@@ -66,24 +66,24 @@ const Navbar = () => {
                         key={link.path}
                         variant="ghost"
                         className={baseStyles}
-                        onPress={() => router.push(link.path!)}>
+                        onClick={() => router.push(link.path!)}>
                         {link.label}
                      </Button>
                   );
                })}
             </div>
 
-            <div className="h-5 w-px bg-white/8" />
+            <div className="h-5 w-px bg-border" />
 
             <div className="flex items-center gap-5">
-               <Link href="/login" className="text-[13px] font-semibold text-[#8a8f9f] hover:text-white">
+               <Link href="/login" className="text-[13px] font-semibold text-muted-foreground hover:text-foreground">
                   Log in
                </Link>
                <Link
                   href="/signup"
-                  className="relative group overflow-hidden rounded-full bg-white px-5 py-2 text-[13px] font-bold text-black transition-all active:scale-95">
+                  className="relative group overflow-hidden rounded-full bg-foreground px-5 py-2 text-[13px] font-bold text-background transition-all active:scale-95">
                   <span className="relative z-10">Get started</span>
-                  <div className="absolute inset-0 translate-y-full bg-[#22d07a] transition-transform duration-300 group-hover:translate-y-0" />
+                  <div className="absolute inset-0 translate-y-full bg-primary transition-transform duration-300 group-hover:translate-y-0" />
                </Link>
             </div>
          </div>

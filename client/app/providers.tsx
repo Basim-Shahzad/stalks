@@ -5,7 +5,7 @@ import { ReactNode, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { ToastProvider } from "@heroui/react";
+import { Toaster } from "@/components/ui/sonner";
 import { TransactionsCreatePdfProvider } from "@/lib/contexts/TransactionsCreatePdf";
 
 let authInitialized = false;
@@ -37,7 +37,7 @@ export default function Providers({ children }: { children: ReactNode }) {
    return (
       <QueryClientProvider client={queryClient}>
          <AuthInitializer />
-         <ToastProvider />
+         <Toaster />
          <TransactionsCreatePdfProvider>{children}</TransactionsCreatePdfProvider>
          <ReactQueryDevtools />
       </QueryClientProvider>
