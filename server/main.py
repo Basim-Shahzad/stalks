@@ -20,14 +20,14 @@ async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    register_exception_handlers(app=app)
-
     yield  # ----------------- APP IS RUNNING HERE -----------------
 
     logger.info("Shutdown complete.")
 
 
 app = FastAPI(title="STALKS_BACKEND", lifespan=lifespan)
+
+register_exception_handlers(app=app)
 
 app.include_router(api_router, prefix="/api/v1")
 
