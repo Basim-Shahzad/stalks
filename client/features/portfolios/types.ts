@@ -1,9 +1,15 @@
+
+const supportedExchanges = ["PSX"] as const;
+const supportedCurrencies = ["PKR"] as const;
+const supportedBrokers = ["AKD", "MMK"] as const;
+
 export interface Portfolio {
    id: string;
-   exchange: "NYSE" | "NASDAQ" | "PSX" | "TADAWUL";
-   currency: string;
+   exchange: typeof supportedExchanges[number];
+   currency: typeof supportedCurrencies[number];
    name: string;
    description: string;
+   broker: typeof supportedBrokers[number];
    createdAt: string;
    updatedAt: string;
 }

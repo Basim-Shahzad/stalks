@@ -16,9 +16,9 @@ export function usePortfolio(id: string) {
    });
 }
 
-export function useCreatePortfolio(portfolio: Partial<Portfolio>) {
+export function useCreatePortfolio() {
    return useMutation({
-      mutationFn: () => usePortfolioApi.create(portfolio),
+      mutationFn: (portfolio: Partial<Portfolio>) => usePortfolioApi.create(portfolio),
    });
 }
 
