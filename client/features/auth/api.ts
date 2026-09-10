@@ -1,6 +1,6 @@
-import { useAuthStore } from "@/stores/useAuthStore";
+import { useAuthStore } from "./store";
 import api from "@/services/api.service";
-import type { User, Tokens } from "@/types/auth.types";
+import type { User, Tokens } from "./types";
 import { API_BASE } from "@/constants/config";
 import axios from "axios";
 

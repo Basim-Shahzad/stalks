@@ -1,5 +1,5 @@
 import axios, { AxiosError, create, type AxiosInstance, InternalAxiosRequestConfig } from "axios";
-import { useAuthStore } from "@/stores/useAuthStore";
+import { useAuthStore } from "@/features/auth/store";
 import { API_BASE } from "@/constants/config";
 
 const api: AxiosInstance = create({
