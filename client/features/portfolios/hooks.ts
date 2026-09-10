@@ -1,6 +1,6 @@
-import { usePortfolioApi } from "@/hooks/usePortfolioApi";
+import { usePortfolioApi } from "./api";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Portfolio } from "@/types/portfolios.types";
+import { Portfolio } from "./types";
 
 export function usePortfolios() {
    return useQuery({

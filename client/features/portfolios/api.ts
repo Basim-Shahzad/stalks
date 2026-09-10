@@ -1,5 +1,5 @@
 import api from "@/services/api.service";
-import type { Portfolio, PortfolioList, PortfolioHoldingsResponse } from "../types/portfolios.types";
+import type { Portfolio, PortfolioList, PortfolioHoldingsResponse } from "./types";
 
 export const usePortfolioApi = {
    getAll: async () => {

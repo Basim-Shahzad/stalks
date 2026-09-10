@@ -1,6 +1,5 @@
-import React from "react";
-import PortfolioGrid from "./components/PortfolioGrid";
-import Header from "../components/Header";
+import Header from "@/features/layout/components/Header";
+import PortfolioGrid from "@/features/portfolios/components/PortfolioGrid";
 
 export default function PortfolioPage() {
    return (

@@ -2,7 +2,7 @@
 
 import PortfolioCard from "./PortfolioCard";
 import { Skeleton } from "@/components/ui/skeleton";
-import { usePortfolios } from "@/lib/queries/portfolioQueries";
+import { usePortfolios } from "../hooks";
 
 const PortfolioGrid = () => {
    const { data, isLoading, isError } = usePortfolios();

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Portfolio } from "@/types/portfolios.types";
+import { Portfolio } from "../types";
 import { useRouter } from "next/navigation";
 
 type PortfolioCardProps = {

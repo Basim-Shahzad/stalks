@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { PortfolioHolding } from "@/types/portfolios.types";
+import { PortfolioHolding } from "../types";
 
 type ColDef = {
    key: keyof PortfolioHolding;
