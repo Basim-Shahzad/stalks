@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import { useAuthStore } from "@/stores/useAuthStore";
+import { useAuthStore } from "@/features/auth/store";
 import { LayoutDashboard, TrendingUp, BookOpen, Notebook, PieChart, BarChart2 } from "lucide-react";
 import Image from "next/image";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
