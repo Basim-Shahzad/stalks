@@ -13,7 +13,7 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ portfolio }) => {
 
    return (
       <article
-         onClick={() => router.push(`/portfolio/${portfolio.id}`)}
+         onClick={() => router.push(`/portfolios/${portfolio.id}`)}
          className="group cursor-pointer relative bg-black border border-white/10 p-6 rounded-xl hover:border-[#00FF87] transition-all duration-300 ease-in-out shadow-2xl">
          {/* Top Section: Exchange & ID */}
          <div className="flex justify-between items-start mb-6">
@@ -42,13 +42,9 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ portfolio }) => {
             </div>
 
             <div className="flex flex-col items-end">
-               <span className="text-[9px] uppercase text-gray-500 font-bold tracking-wider">Last Modified</span>
+               <span className="text-[9px] uppercase text-gray-500 font-bold tracking-wider">Broker</span>
                <span className="text-sm font-mono text-gray-300">
-                  {new Date(portfolio.updatedAt).toLocaleDateString(undefined, {
-                     month: "short",
-                     day: "numeric",
-                     year: "2-digit",
-                  })}
+                  {portfolio.broker}
                </span>
             </div>
          </div>
