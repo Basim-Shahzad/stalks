@@ -41,7 +41,7 @@ export default function Sidebar() {
          {/* Primary Nav */}
          <nav className="flex-1 px-2 py-1 overflow-y-auto mt-2">
             {[
-               { id: "portfolio", label: "Portfolio", icon: LayoutDashboard },
+               { id: "portfolios", label: "Portfolio", icon: LayoutDashboard },
                { id: "stocks", label: "Stocks", icon: LayoutDashboard },
                { id: "transactions", label: "Transactions", icon: PieChart },
                { id: "strategies", label: "Strategies", icon: Notebook, badge: "3" },
