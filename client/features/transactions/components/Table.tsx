@@ -173,7 +173,7 @@ const COLUMNS: ColumnDef<Transaction>[] = [
                }}
             >
                {isNegative ? "−" : isPositive ? "+" : ""}
-               {Math.abs(val)}
+               {Math.abs(val).toFixed(2)}
             </span>
          );
       },

@@ -27,7 +27,7 @@ export const useTransactionApi = {
       const { data } = await api.post<Transaction>(`/transactions/${portfolio_id}`, transaction);
       return data;
    },
-   createFromMmkPdf: async (file: File, portfolio_id: string) => {
+   createFromPdf: async (file: File, portfolio_id: string) => {
       const formData = new FormData();
       formData.append("file", file);
 

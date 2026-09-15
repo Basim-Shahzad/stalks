@@ -2,34 +2,44 @@
 
 import { useState } from "react";
 import { SlidersHorizontal } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import {
+   Popover,
+   PopoverTrigger,
+   PopoverContent,
+} from "@/components/ui/popover";
 import FiltersModal from "./FiltersModal";
 import { usePortfolios } from "@/features/portfolios/hooks";
 import { useTransactionFilters } from "../hooks/useTransactionFilters";
 import { DropdownButton } from "./action-menu";
-import AddTransactionMmkModal from "./AddTransactionMmkModal";
+import UploadStatementModal from "./UploadStatementModal";
+import AddTransactionsModal from "./AddTransactionsModal";
 
 const ghostCls =
    "h-6 min-w-0 px-2.5 rounded bg-secondary border border-border text-muted-foreground " +
    "hover:bg-accent hover:text-foreground hover:border-border uppercase gap-2 transition-all duration-100";
 
-type HeaderRightProps = {
-   setIsAddTransactionModalOpen: (open: boolean) => void;
-};
-
-const HeaderRight = ({ setIsAddTransactionModalOpen }: HeaderRightProps) => {
+const HeaderRight = () => {
    const [isFilterModalOpen, setIsFilterModalOpen] = useState<boolean>(false);
-   const [isCreateTransactionMmkModalOpen, setIsCreateTransactionMmkModalOpen] = useState<boolean>(false);
-   const { data: portfolios } = usePortfolios();
-   const { filters, activeCount, setFilters, clearFilters } = useTransactionFilters();
+   const [isAddTransactionModalOpen, setIsAddTransactionModalOpen] =
+      useState<boolean>(false);
+   const [isAddMmkModalOpen, setIsAddMmkModalOpen] = useState<boolean>(false);
+   const [isAddAkdModalOpen, setIsAddAkdModalOpen] = useState<boolean>(false);
 
-  
+   const { data: portfolios } = usePortfolios();
+   const { filters, activeCount, setFilters, clearFilters } =
+      useTransactionFilters();
 
    return (
       <div className="flex items-center gap-1.5">
-         <Popover open={isFilterModalOpen} onOpenChange={(open) => setIsFilterModalOpen(open)}>
-            <PopoverTrigger render={<Button variant="ghost" className={ghostCls} />}>
+         <Popover
+            open={isFilterModalOpen}
+            onOpenChange={(open) => setIsFilterModalOpen(open)}
+         >
+            <PopoverTrigger
+               render={<Button variant="ghost" className={ghostCls} />}
+            >
                <SlidersHorizontal className="w-2.5 h-2.5 shrink-0" />
                Filter
                {activeCount > 0 && (
@@ -56,19 +66,34 @@ const HeaderRight = ({ setIsAddTransactionModalOpen }: HeaderRightProps) => {
 
          <DropdownButton
             label="Add"
-            onClick={setIsAddTransactionModalOpen}
+            className="h-6 text-xs uppercase"
+            onClick={() => setIsAddTransactionModalOpen(true)}
             items={[
-               { label: "Add MMK Transactions PDF", onClick: () => setIsCreateTransactionMmkModalOpen(true) },
-               { label: "Add Transactions CSV", onClick: () => console.log("PDF") },
+               {
+                  label: "MMK Statement",
+                  onClick: () => setIsAddMmkModalOpen(true),
+               },
+               {
+                  label: "AKD Statement",
+                  onClick: () => setIsAddAkdModalOpen(true),
+               },
             ]}
          />
 
-         {isCreateTransactionMmkModalOpen && (
-            <AddTransactionMmkModal
-               open={isCreateTransactionMmkModalOpen}
-               setOpen={setIsCreateTransactionMmkModalOpen}
-            />
-         )}
+         <AddTransactionsModal
+            isOpen={isAddTransactionModalOpen}
+            onOpenChange={setIsAddTransactionModalOpen}
+         />
+         <UploadStatementModal
+            open={isAddMmkModalOpen}
+            setOpen={setIsAddMmkModalOpen}
+            broker="MMK"
+         />
+         <UploadStatementModal
+            open={isAddAkdModalOpen}
+            setOpen={setIsAddAkdModalOpen}
+            broker="AKD"
+         />
       </div>
    );
 };

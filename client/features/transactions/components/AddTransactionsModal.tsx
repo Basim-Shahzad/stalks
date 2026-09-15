@@ -50,6 +50,7 @@ export default function AddTransactionsModal({
       onSuccess() {
          toast.success("Transaction created successfully");
          queryClient.invalidateQueries({ queryKey: ["transactions"] });
+         onOpenChange(false);
       },
       onError(err: any) {
          const serverMessage = err.response?.data?.detail;
