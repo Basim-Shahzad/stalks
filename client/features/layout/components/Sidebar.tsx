@@ -2,7 +2,7 @@
 
 import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/features/auth/store";
-import { LayoutDashboard, TrendingUp, BookOpen, Notebook, PieChart, BarChart2 } from "lucide-react";
+import { LayoutDashboard, TrendingUp, BookOpen, Notebook, PieChart, BarChart2, LayoutGridIcon } from "lucide-react";
 import Image from "next/image";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
@@ -36,15 +36,15 @@ export default function Sidebar() {
             </div>
          </div>
 
-         <div className="px-4 pt-4 pb-1 text-[9px] tracking-[2px] text-muted-foreground/60 font-bold">NAVIGATION</div>
+         <div className="px-4 pt-4 pb-1 text-[9px] tracking-[2px] text-muted-foreground/60 font-bold">HOME</div>
 
          {/* Primary Nav */}
          <nav className="flex-1 px-2 py-1 overflow-y-auto mt-2">
             {[
                { id: "portfolios", label: "Portfolio", icon: LayoutDashboard },
-               { id: "stocks", label: "Stocks", icon: LayoutDashboard },
-               { id: "transactions", label: "Transactions", icon: PieChart },
-               { id: "strategies", label: "Strategies", icon: Notebook, badge: "3" },
+               { id: "stocks", label: "Stocks", icon: PieChart },
+               { id: "transactions", label: "Transactions", icon: Notebook },
+               { id: "strategies", label: "Strategies", icon: LayoutGridIcon, badge: "3" },
             ].map((item) => {
                const active = isActive(item.id);
                return (
