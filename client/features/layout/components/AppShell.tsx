@@ -2,24 +2,25 @@
 
 import Sidebar from "./Sidebar";
 import { useAuthStore } from "@/features/auth/store";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
+
+const PUBLIC_PATHS = ["/", "/login", "signup"];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
    const { isInitialized, user } = useAuthStore();
    const router = useRouter();
+   const pathname = usePathname();
+   const isPublic = PUBLIC_PATHS.includes(pathname);
 
    useEffect(() => {
-      if (isInitialized && !user) {
+      if (isInitialized && !user && !isPublic) {
          router.replace("/login");
       }
-   }, [isInitialized, user]);
+   }, [isInitialized, user, isPublic, router]);
 
-   // Don't render anything until auth is resolved
    if (!isInitialized) return null;
-
-   // Auth resolved but no user — redirect is in flight
-   if (!user) return null;
+   if (!user && !isPublic) return null;
 
    return (
       <div className="flex min-h-screen bg-[#070707] text-white">

@@ -12,7 +12,6 @@ import { TransactionsCreatePdfProvider } from "@/features/transactions/context/T
 let authInitialized = false;
 
 function AuthInitializer() {
-   const router = useRouter()
    useEffect(() => {
       if (authInitialized) return;
       authInitialized = true;
@@ -20,7 +19,6 @@ function AuthInitializer() {
       useAuth.me().catch(() => {
          useAuthStore.getState().setAuthInitialized(null);
       });
-      router.push("/portfolios")
    }, []);
    return null;
 }
