@@ -11,7 +11,6 @@ from services.psx_service import PSXScraperService
 from .holdings import Holdings
 from .repository import PortfolioRepository
 from .schemas.PortfolioSchema import (
-    PortfolioAnalytics,
     PortfolioCreateSchema,
     PortfolioHoldingsResponse,
     PortfolioListItemSchema,
@@ -85,23 +84,3 @@ async def get_portfolio_holdings(
 
     holdings = Holdings.from_transactions(transactions, psx)
     return holdings.to_dict()
-
-
-@router.get(
-    "/{portfolio_id}/analytics",
-    response_model=PortfolioAnalytics,
-    status_code=status.HTTP_200_OK,
-)
-async def get_portfolio_analytics(
-    portfolio_id: uuid.UUID,
-    db: DBSession,
-    current_user: User = Depends(get_current_active_user),
-):
-    service = get_portfolio_service(db)
-    portfolio = await service.get_owned_or_404(portfolio_id, current_user.id)
-
-    transactions = await TransactionRepository(db).list_for_user(
-        current_user.id, portfolio_ids=[portfolio.id]
-    )
-
-    return service.get_analytics(transactions)

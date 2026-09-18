@@ -18,5 +18,8 @@ class Settings(BaseSettings):
     refresh_token_expire_days: int = 30
     app_env: str
 
+    stalks_data_api_base_url: str
+    stalks_data_api_key: SecretStr
+
 
 settings = Settings()
