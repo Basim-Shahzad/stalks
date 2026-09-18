@@ -2,10 +2,12 @@ from uuid import UUID
 
 from features.base.exceptions import NotFoundException
 from features.base.service import BaseService
+from features.transactions.schemas.TransactionsSchema import TransactionSchema
 
+from .analytics import Analytics
 from .models.Portfolio import Portfolio
 from .repository import PortfolioRepository
-from .schemas.PortfolioSchema import PortfolioCreateSchema
+from .schemas.PortfolioSchema import PortfolioAnalytics, PortfolioCreateSchema
 
 
 class PortfolioService(BaseService[Portfolio]):
@@ -31,3 +33,11 @@ class PortfolioService(BaseService[Portfolio]):
         if portfolio.user_id != user_id:
             raise NotFoundException(f"Portfolio with id {portfolio_id} not found")
         return portfolio
+
+    def get_analytics(self, transactions: list[TransactionSchema]) -> PortfolioAnalytics:
+        analytics = Analytics(transactions)
+        return PortfolioAnalytics(
+            total_capital_invested=analytics.getTotalCapitalInvested(),
+            total_fees_paid=analytics.getTotalFeesPaid(),
+            total_realized_profit=analytics.getRealizedProfit(),
+        )

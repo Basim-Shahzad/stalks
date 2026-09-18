@@ -79,3 +79,9 @@ class PortfolioSummary(BaseSchema):
 class PortfolioHoldingsResponse(BaseSchema):
     holdings: list[PortfolioHoldings]
     summary: PortfolioSummary
+
+
+class PortfolioAnalytics(BaseSchema):
+    total_capital_invested: Decimal
+    total_fees_paid: Decimal
+    total_realized_profit: Decimal

@@ -2,6 +2,7 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
+from features.transactions.models.Side import Side
 
 from features.base.schema import BaseSchema
 
@@ -12,7 +13,7 @@ class TransactionSchema(BaseSchema):
     company: str
     symbol: str
     sector: str
-    side: str
+    side: Side
     quantity: Decimal
     rate: Decimal
     commission: Decimal = Decimal("0.00")
