@@ -27,7 +27,7 @@ export type PortfolioHolding = {
    currentPrice: string;
    ldcp: string;
    dayChange: string;
-   dayChange_pct: string;
+   dayChangePct: string;
    direction: string;
    marketValue: string;
    costBasis: string;

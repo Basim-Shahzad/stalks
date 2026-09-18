@@ -12,15 +12,27 @@ type ColDef = {
 };
 
 const COLS: ColDef[] = [
-   { key: "symbol", label: "Symbol", sticky: true, defaultOn: true, align: "left" },
-   { key: "company", label: "Company", sticky: false, defaultOn: true, align: "left" },
+   {
+      key: "symbol",
+      label: "Symbol",
+      sticky: true,
+      defaultOn: true,
+      align: "left",
+   },
+   {
+      key: "company",
+      label: "Company",
+      sticky: false,
+      defaultOn: false,
+      align: "left",
+   },
    { key: "sector", label: "Sector", defaultOn: false, align: "left" },
    { key: "quantity", label: "Qty", defaultOn: true },
    { key: "avgCost", label: "Avg Cost", defaultOn: true },
    { key: "currentPrice", label: "Price", defaultOn: true },
    { key: "ldcp", label: "LDCP", defaultOn: false },
    { key: "dayChange", label: "Day Chg", defaultOn: true },
-   { key: "dayChange_pct", label: "Day %", defaultOn: true },
+   { key: "dayChangePct", label: "Day %", defaultOn: true },
    { key: "marketValue", label: "Mkt Value", defaultOn: true },
    { key: "totalInvested", label: "Invested", defaultOn: false },
    { key: "totalFees", label: "Fees", defaultOn: false },
@@ -33,7 +45,7 @@ const COLS: ColDef[] = [
 
 const PNL_KEYS = new Set<keyof PortfolioHolding>([
    "dayChange",
-   "dayChange_pct",
+   "dayChangePct",
    "unrealisedPnl",
    "unrealisedPnlPct",
    "realisedPnl",
@@ -60,7 +72,8 @@ const Table = ({ holdings = [] }: { holdings: PortfolioHolding[] }) => {
 
    const activeCols = COLS.filter((c) => visible[c.key]);
 
-   const toggle = (key: string) => setVisible((prev) => ({ ...prev, [key]: !prev[key] }));
+   const toggle = (key: string) =>
+      setVisible((prev) => ({ ...prev, [key]: !prev[key] }));
 
    useEffect(() => {
       const handler = (e: MouseEvent) => {
@@ -77,7 +90,9 @@ const Table = ({ holdings = [] }: { holdings: PortfolioHolding[] }) => {
          {/* Toolbar */}
          <div className="flex items-center justify-between px-3.5 py-2.5 bg-[#0d0e0f] border-b border-[#2e3033] gap-2 flex-wrap">
             <div className="flex items-center gap-2">
-               <span className="text-[10px] font-medium tracking-widest uppercase text-[#a0a0a0]">Holdings</span>
+               <span className="text-[10px] font-medium tracking-widest uppercase text-[#a0a0a0]">
+                  Holdings
+               </span>
                <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-[#00ff8720] text-[#00ff87] border border-[#00ff8740]">
                   {holdings.length} positions
                </span>
@@ -89,7 +104,13 @@ const Table = ({ holdings = [] }: { holdings: PortfolioHolding[] }) => {
                   onClick={() => setPanelOpen((v) => !v)}
                   className="flex items-center gap-1.5 text-[12px] text-[#a0a0a0] bg-[#1c1d1f] border border-[#2e3033] px-2.5 py-1 rounded-md hover:border-[#00ff87] hover:text-white transition-colors cursor-pointer"
                >
-                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg
+                     className="w-3.5 h-3.5"
+                     viewBox="0 0 24 24"
+                     fill="none"
+                     stroke="currentColor"
+                     strokeWidth="2"
+                  >
                      <rect x="3" y="3" width="7" height="18" rx="1" />
                      <rect x="14" y="3" width="7" height="18" rx="1" />
                   </svg>
@@ -157,7 +178,9 @@ const Table = ({ holdings = [] }: { holdings: PortfolioHolding[] }) => {
                               <td
                                  key={col.key}
                                  className={`px-3 py-2.5 whitespace-nowrap ${
-                                    col.align === "left" ? "text-left" : "text-right"
+                                    col.align === "left"
+                                       ? "text-left"
+                                       : "text-right"
                                  } ${
                                     col.key === "symbol"
                                        ? "text-[#00ff87] font-medium tracking-wider"
@@ -168,12 +191,19 @@ const Table = ({ holdings = [] }: { holdings: PortfolioHolding[] }) => {
                                            : "text-[#a0a0a0]"
                                  }`}
                               >
-                                 {col.key === "sector" ? (
+                                 {["sector", "symbol", "company"].includes(
+                                    col.key,
+                                 ) ? (
                                     <span className="text-[10px] bg-[#1c1d1f] border border-[#2e3033] px-2 py-0.5 rounded text-[#888]">
                                        {val}
                                     </span>
+                                 ) : // Added a fallback to prevent crashing if val is null, undefined, or text
+                                 val !== null &&
+                                   val !== undefined &&
+                                   !isNaN(val) ? (
+                                    Number(val).toFixed(2)
                                  ) : (
-                                    val
+                                    "-"
                                  )}
                               </td>
                            );

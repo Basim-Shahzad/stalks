@@ -8,7 +8,7 @@ import Header from "@/features/layout/components/Header";
 import HoldingsTable from "./HoldingsTable";
 import { StatCard } from "./analytics/StatCard";
 import SectorAllocation from "./analytics/SectorAllocation";
-import { Stats } from "../stats/stats";
+import { formatCamelCase } from "../utils";
 
 const PortfolioDetail = ({
    params,
@@ -38,17 +38,16 @@ const PortfolioDetail = ({
       portfolios: new Set([portfolio_id]),
    });
 
-   const stats = useMemo(() => {
-      if (!transactions) return null;
-      return new Stats(transactions);
-   }, [transactions]);
-
    if (portfolioLoading || !portfolio) {
       return (
          <div>
             <Header title="Loading..."></Header>
          </div>
       );
+   }
+
+   if (holdingsLoading || !portfolioHoldings) {
+      return <div>Loading....</div>;
    }
 
    if (portfolioError) {
@@ -85,27 +84,17 @@ const PortfolioDetail = ({
 
          {activeTab === "stats" && (
             <div className="stats">
-               <div className="mini-stats grid grid-cols-4 gap-4 px-4 py-4">
-                  <StatCard
-                     title="Amount Invested"
-                     stat={stats?.getTotalCapital()}
-                     isSkeleton={isTransactionsLoading}
-                  />
-                  <StatCard
-                     title="Total Fees"
-                     stat={stats?.getTotalFees()}
-                     isSkeleton={isTransactionsLoading}
-                  />
-                  <StatCard
-                     title="Total Buy Value"
-                     stat={stats?.getTotalBuyValue()}
-                     isSkeleton={isTransactionsLoading}
-                  />
-                  <StatCard
-                     title="Total Sell Value"
-                     stat={stats?.getTotalSellValue()}
-                     isSkeleton={isTransactionsLoading}
-                  />
+               <div className="mini-stats flex flex-wrap grid-cols-5 justify-center items-center gap-4 px-4 py-4">
+                  {Object.entries(portfolioHoldings?.summary).map(
+                     ([key, value]) => (
+                        <StatCard
+                           isSkeleton={holdingsLoading}
+                           title={formatCamelCase(key)}
+                           stat={Number(value)}
+                           key={key}
+                        />
+                     ),
+                  )}
                </div>
                <SectorAllocation transactions={transactions ?? []} />
             </div>
