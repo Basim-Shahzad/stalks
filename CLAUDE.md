@@ -28,9 +28,7 @@ Dependencies are managed with `uv` (`uv.lock` present, `requirements.txt` also p
 
 ## Server architecture (FastAPI)
 
-**Known issue:** `server/main.py` currently fails to import — it does `from features.market_data...` (both `get_tickers` and `config`), but that module was deleted. Anyone running the server needs to fix or remove those two imports (and the ticker-loading step in `lifespan` that used them) first.
-
-Entry point is `server/main.py`. Its `lifespan` handler creates DB tables via `Base.metadata.create_all` and registers the app's exception handlers. Routes are mounted under `/api/v1` (wired up in `server/api/v1/api.py`); CORS is locked to `http://localhost:3000`.
+Entry point is `server/main.py`. Its `lifespan` handler creates DB tables via `Base.metadata.create_all`, marks background jobs left PENDING/IN_PROGRESS by a previous run as FAILED, and purges stale refresh tokens; exception handlers are registered at import. Schema changes need an Alembic migration (`server/migrations/versions/`). Routes are mounted under `/api/v1` (wired up in `server/api/v1/api.py`); CORS is locked to `http://localhost:3000`.
 
 ### Vertical-slice `features/` layout
 
@@ -38,21 +36,21 @@ The whole server lives under `server/features/<domain>/`, each following (as muc
 
 - `features/auth` — JWT access/refresh tokens (argon2/pwdlib hashing), `User`/`RefreshToken` models.
 - `features/portfolios` — portfolio CRUD and holdings computation (`holdings.py`).
-- `features/transactions` — transaction CRUD, the watched-symbols event hooks (`events.py`), the PSX broker-statement PDF parser (`statement_parser.py`), and background-job tracking (`models/Job.py`, `jobs_router` mounted at `/api/v1/jobs`).
+- `features/transactions` — transaction CRUD, the broker-statement PDF parsers (`parsers/akd.py`, `parsers/mmk.py`), the shared PSX sector lookup/cache (`sectors.py`), and background-job tracking (`jobs_router` mounted at `/api/v1/jobs`; `Job` model/service live in `server/models`, `server/repositories`, `server/services`). Re-uploading a statement skips trades already stored.
 - `features/strategies` — bracket sell-strategy CSV basket generation (`strategy.py`, `sell/bracket.py`); has no model of its own, computes over transactions already persisted by `features/transactions`.
+- `features/market` — OHLCV bars proxied from the external Stalks Data API (`server/services/stalks_data_client.py`).
 - `features/base` — shared generic `BaseRepository`/`BaseService`/domain-exception classes (`NotFoundException`, `ConflictException`, etc.) that the other features build on, plus the exception handlers registered in `main.py` that map them to HTTP responses.
 
 `server/models/enums.py` (`ExchangeType`) is the one piece of shared kernel left outside `features/`, since it's used across multiple features.
-
-There used to be a `features/market_data` (exchange config, Supabase-backed OHLCV CSV storage, ticker list). It was deleted; nothing has replaced its market-data-serving endpoints yet.
 
 ### Data layer
 - `server/db/database.py` sets up async SQLAlchemy: `create_async_engine`, `async_sessionmaker`, and a shared `Base` that auto-adds `id`/`created_at`/`updated_at`. The `get_db()` FastAPI dependency commits on success and rolls back on exception, per request. All feature repositories are async and use this.
 - `peewee`, `pandas`, and `yfinance` are still listed as dependencies in `server/pyproject.toml` but nothing in `server/` imports them anymore — leftover from removed/superseded code, not in active use.
 
 ### Domain integrations
-- Live price lookups: on-demand PSX site scraping (`beautifulsoup4`/`requests`) via `server/services/psx_service.py`, used by portfolio holdings and strategies.
-- Transaction import: brokerage-statement PDF parsing via `pdfplumber` in `features/transactions/statement_parser.py` (async, includes PSX sector lookup/caching), invoked as a background job (`features/transactions/service.py`) after `POST /transactions/{portfolio_id}/upload/pdf`.
+- Live price lookups: PSX market-watch scraping via `server/services/psx_service.py` (`psx_service` singleton, 20 s TTL cache, blocking — call via `asyncio.to_thread`), used by portfolio holdings and strategies.
+- Transaction import: `AKD` and `MMK` PDF parsers run as a background job (`features/transactions/service.py`) after `POST /transactions/{portfolio_id}/upload/pdf`. Sectors are cached in `server/core/data/cache/sector_cache.json`.
+- Auth: access JWT `sub` is the user id; refresh tokens are rotated atomically (`TokenRepository.claim`). Bad credentials raise `AuthenticationException` (401); `UnauthorizedException` is 403.
 
 ### Config / env vars
 No `.env.example` exists. `server/core/config.py` (pydantic-settings, extra env vars forbidden) currently defines: `SQLALCHEMY_DATABASE_URI`, `secret_key`, `algorithm` (default `HS256`), `access_token_expire_minutes`, `refresh_token_expire_days`, `app_env`. Supabase (`supabase_url`/`supabase_key`) was removed from `Settings` along with `features/market_data` — if a local `.env` still sets those keys, `Settings()` will fail validation on startup (extra inputs aren't permitted).
@@ -64,7 +62,6 @@ No `.env.example` exists. `server/core/config.py` (pydantic-settings, extra env 
 - `client/hooks/` (older, e.g. `usePortfolioApi.ts`, `useTransactionApi.ts`) and `client/lib/hooks/` + `client/lib/queries/` (newer, TanStack Query–based) overlap in purpose — prefer the `lib/queries` pattern for new data-fetching code.
 - `client/services/api.service.ts` is the axios-based API client.
 - Path alias `@/*` resolves to the `client/` project root (see `client/tsconfig.json`).
-- Note: `client/lib/queries/marketQueries.ts` calls `/market/data/{exchange}/{symbol}`, a server endpoint that no longer exists now that `features/market_data` was removed.
 
 ## Commit style
 
