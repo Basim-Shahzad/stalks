@@ -2,6 +2,7 @@ import io
 import csv
 from decimal import Decimal, ROUND_HALF_UP
 from functools import cached_property
+from features.portfolios.holdings import OpenLot
 from features.transactions.models.Transaction import Transaction
 
 from ..strategy import Strategy
@@ -40,32 +41,33 @@ class BracketStrategy(Strategy):
         return self.get_psx_data()
 
     @cached_property
-    def _triggered(self) -> tuple[list[Transaction], list[dict]]:
-        triggered_tsxs: list[Transaction] = []
-        triggered_stocks: list[dict] = []
+    def _triggered(self) -> list[tuple[OpenLot, dict]]:
+        """Open lots whose live price has reached `rate * trigger_pct`."""
+        stocks = {
+            stock["symbol"]: stock
+            for stock in self.current_stocks_data
+            if stock.get("current") is not None
+        }
+        multiplier = Decimal(str(self.trigger_pct))
 
-        for tsx in self.transactions:
-            for stock in self.current_stocks_data:
-                if stock["symbol"] == tsx.symbol:
-                    if stock["current"] >= (tsx.rate * Decimal(str(self.trigger_pct))):
-                        triggered_tsxs.append(tsx)
-                        triggered_stocks.append(stock)
+        triggered: list[tuple[OpenLot, dict]] = []
+        for lot in self.get_open_lots():
+            stock = stocks.get(lot.symbol)
+            if stock is not None and stock["current"] >= lot.rate * multiplier:
+                triggered.append((lot, stock))
+        return triggered
 
-        return triggered_tsxs, triggered_stocks
-
-    def _compute_sell_volume(self, tsx: Transaction) -> int:
+    def _compute_sell_volume(self, lot: OpenLot) -> int:
         return int(
-            (tsx.quantity * Decimal(str(self.sell_volume_pct))).to_integral_value(
+            (lot.quantity * Decimal(str(self.sell_volume_pct))).to_integral_value(
                 rounding=ROUND_HALF_UP
             )
         )
 
     def format_limit_orders(self) -> list[dict]:
         orders = []
-        triggered_tsxs, triggered_stocks = self._triggered
-
-        for tsx, stock in zip(triggered_tsxs, triggered_stocks):
-            sell_volume = self._compute_sell_volume(tsx)
+        for lot, stock in self._triggered:
+            sell_volume = self._compute_sell_volume(lot)
             if sell_volume < 1:
                 continue
 
@@ -75,7 +77,7 @@ class BracketStrategy(Strategy):
             orders.append(
                 {
                     "Account": self.account_id,
-                    "Symbol": tsx.symbol,
+                    "Symbol": lot.symbol,
                     "Order Side": "SELL",
                     "Volume": sell_volume,
                     "Price": upper_price,
@@ -88,10 +90,8 @@ class BracketStrategy(Strategy):
 
     def format_slo_orders(self) -> list[dict]:
         orders = []
-        triggered_tsxs, triggered_stocks = self._triggered
-
-        for tsx, stock in zip(triggered_tsxs, triggered_stocks):
-            sell_volume = self._compute_sell_volume(tsx)
+        for lot, stock in self._triggered:
+            sell_volume = self._compute_sell_volume(lot)
             if sell_volume < 1:
                 continue
 
@@ -99,7 +99,7 @@ class BracketStrategy(Strategy):
             orders.append(
                 {
                     "Account": self.account_id,
-                    "Symbol": tsx.symbol,
+                    "Symbol": lot.symbol,
                     "Order Side": "SELL",
                     "Volume": sell_volume,
                     "Price": stop_price,
