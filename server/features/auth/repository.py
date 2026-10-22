@@ -1,7 +1,9 @@
 from uuid import UUID
 from datetime import datetime
 
-from sqlalchemy import func, select
+from datetime import UTC, timedelta
+
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from features.base.repository import BaseRepository
@@ -15,9 +17,18 @@ class UserRepository(BaseRepository[User]):
         super().__init__(User, db)
 
     async def get_by_email(self, email: str) -> User | None:
-        """Fetch a single user by their (unique) email address, case-insensitively."""
+        """Fetch a single user by their (unique) email address, case-insensitively.
+
+        Emails are stored lower-cased, so the indexed equality lookup is tried
+        first; the non-indexed lower() scan only runs for legacy mixed-case
+        rows (or when the email doesn't exist)."""
+        email = email.lower()
+        result = await self.db.execute(select(User).where(User.email == email))
+        user = result.scalar_one_or_none()
+        if user is not None:
+            return user
         result = await self.db.execute(
-            select(User).where(func.lower(User.email) == email.lower())
+            select(User).where(func.lower(User.email) == email)
         )
         return result.scalar_one_or_none()
 
@@ -33,7 +44,6 @@ class TokenRepository(BaseRepository[RefreshToken]):
         db_obj = self.model(**obj_in.model_dump())
         self.db.add(db_obj)
         await self.db.flush()
-        await self.db.refresh(db_obj)
         return db_obj
 
     async def get_by_token(self, token: str) -> RefreshToken | None:
@@ -49,14 +59,38 @@ class TokenRepository(BaseRepository[RefreshToken]):
         await self.db.flush()
         return db_token
 
+    async def claim(self, token_id: UUID) -> bool:
+        """Atomically revoke a still-active token. Returns False if another
+        request revoked it first (so only one concurrent refresh can win)."""
+        result = await self.db.execute(
+            update(RefreshToken)
+            .where(RefreshToken.id == token_id, RefreshToken.revoked.is_(False))
+            .values(revoked=True, updated_at=datetime.now(UTC))
+        )
+        return result.rowcount == 1
+
     async def revoke_all_active_for_user(self, user_id: UUID) -> None:
         """Revoke every active refresh token for a user (logout-all-devices)."""
-        result = await self.db.execute(
-            select(RefreshToken).where(
+        await self.db.execute(
+            update(RefreshToken)
+            .where(
                 RefreshToken.user_id == user_id,
                 RefreshToken.revoked.is_(False),
             )
+            .values(revoked=True, updated_at=datetime.now(UTC))
         )
-        for token in result.scalars().all():
-            token.revoked = True
-        await self.db.flush()
+
+    async def purge_stale(self, keep_revoked_for: timedelta = timedelta(days=1)) -> int:
+        """Delete expired tokens, and revoked tokens older than `keep_revoked_for`
+        (kept briefly so reuse of a rotated token is still detected)."""
+        now = datetime.now(UTC)
+        result = await self.db.execute(
+            delete(RefreshToken).where(
+                (RefreshToken.expires_at < now)
+                | (
+                    RefreshToken.revoked.is_(True)
+                    & (RefreshToken.updated_at < now - keep_revoked_for)
+                )
+            )
+        )
+        return result.rowcount or 0

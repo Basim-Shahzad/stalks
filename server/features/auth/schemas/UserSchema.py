@@ -20,6 +20,8 @@ class UserUpdateSchema(BaseSchema):
     # Fields are optional for PATCH requests
     name: Optional[str] = Field(None, min_length=3, max_length=255)
     password: Optional[str] = Field(None, min_length=8, max_length=128)
+    # Required whenever `password` is set.
+    current_password: Optional[str] = Field(None, max_length=128)
 
 
 class UserResponseSchema(UserBase):

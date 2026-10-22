@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import ValidationError
 
 from api.deps import DBSession
-from features.base.exceptions import UnauthorizedException
+from features.base.exceptions import AuthenticationException
 from features.auth.dependencies import get_current_active_user
 from features.auth.models.User import User
 from features.auth.repository import TokenRepository, UserRepository
@@ -14,11 +14,9 @@ from features.auth.schemas.UserSchema import (
     UserUpdateSchema,
     UserUpdateResponseSchema,
 )
-from features.auth.service import AuthService, TokenService
+from features.auth.service import REFRESH_TOKEN_COOKIE, AuthService, TokenService
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
-
-REFRESH_TOKEN_COOKIE = "refresh_token"
 
 
 def get_auth_service(db: DBSession) -> AuthService:
@@ -58,7 +56,7 @@ async def token(
     try:
         credentials = LoginSchema(email=form_data.username, password=form_data.password)
     except ValidationError:
-        raise UnauthorizedException("Incorrect email or password")
+        raise AuthenticationException("Incorrect email or password")
     user = await get_auth_service(db).login(credentials)
     return await get_token_service(db).set_tokens(response, user)
 

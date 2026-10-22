@@ -22,4 +22,7 @@ class RefreshToken(Base):
     revoked: Mapped[bool] = mapped_column(Boolean, default=False)
 
     def is_expired(self) -> bool:
-        return datetime.now(UTC) > self.expires_at.replace(tzinfo=UTC)
+        expires_at = self.expires_at
+        if expires_at.tzinfo is None:  # some backends return naive UTC
+            expires_at = expires_at.replace(tzinfo=UTC)
+        return datetime.now(UTC) > expires_at

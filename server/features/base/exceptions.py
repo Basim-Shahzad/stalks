@@ -33,6 +33,12 @@ class ValidationException(AppException):
 
 
 class UnauthorizedException(AppException):
-    """Raised when a user is authenticated but not permitted to perform an action."""
+    """Raised when a user is authenticated but not permitted to perform an action (403)."""
+
+    pass
+
+
+class AuthenticationException(AppException):
+    """Raised when credentials / tokens are missing, wrong or expired (401)."""
 
     pass

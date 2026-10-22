@@ -7,6 +7,7 @@ from fastapi import Request, status
 from fastapi.responses import JSONResponse
 
 from features.base.exceptions import (
+    AuthenticationException,
     ConflictException,
     NotFoundException,
     UnauthorizedException,
@@ -35,6 +36,14 @@ async def validation_handler(request: Request, exc: ValidationException):
     )
 
 
+async def authentication_handler(request: Request, exc: AuthenticationException):
+    return JSONResponse(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        content={"detail": exc.message},
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+
 async def unauthorized_handler(request: Request, exc: UnauthorizedException):
     return JSONResponse(
         status_code=status.HTTP_403_FORBIDDEN,
@@ -48,3 +57,4 @@ def register_exception_handlers(app):
     app.add_exception_handler(ConflictException, conflict_handler)
     app.add_exception_handler(ValidationException, validation_handler)
     app.add_exception_handler(UnauthorizedException, unauthorized_handler)
+    app.add_exception_handler(AuthenticationException, authentication_handler)

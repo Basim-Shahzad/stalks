@@ -12,7 +12,7 @@ class AccessTokenResponse(BaseSchema):
 
 
 class TokenData(BaseSchema):
-    email: Optional[str] = None
+    user_id: uuid.UUID
 
 class CreateRefreshToken(BaseSchema):
     user_id: uuid.UUID
