@@ -15,7 +15,7 @@ const Hero = () => {
    return (
       // ── Hero wrapper ──
       <div
-         className="relative overflow-hidden flex flex-col"
+         className="hero-root relative overflow-hidden flex flex-col"
          style={{ fontFamily: "'DM Sans', sans-serif", background: "var(--bg)" }}>
          {/* atmosphere */}
          <div className="hero-glow" />

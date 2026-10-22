@@ -5,6 +5,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useAuthStore } from "@/features/auth/store";
 import ProductMegaMenu from "./ProductMegaMenu";
 
 const NAV_ITEMS = [
@@ -14,8 +16,12 @@ const NAV_ITEMS = [
    { label: "Contact", path: "/contact" },
 ];
 
+const getInitial = (name?: string) => name?.trim()[0]?.toUpperCase() ?? "";
+
 const Navbar = () => {
    const router = useRouter();
+   const user = useAuthStore((state) => state.user);
+   const isInitialized = useAuthStore((state) => state.isInitialized);
    const pathname = usePathname();
    const [isMenuOpen, setIsMenuOpen] = useState(false);
    const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -75,16 +81,36 @@ const Navbar = () => {
 
             <div className="h-5 w-px bg-border" />
 
-            <div className="flex items-center gap-5">
-               <Link href="/login" className="text-[13px] font-semibold text-muted-foreground hover:text-foreground">
-                  Log in
-               </Link>
-               <Link
-                  href="/signup"
-                  className="relative group overflow-hidden rounded-full bg-foreground px-5 py-2 text-[13px] font-bold text-background transition-all active:scale-95">
-                  <span className="relative z-10">Get started</span>
-                  <div className="absolute inset-0 translate-y-full bg-primary transition-transform duration-300 group-hover:translate-y-0" />
-               </Link>
+            <div className="flex min-w-[140px] items-center justify-end gap-5">
+               {!isInitialized ? null : user ? (
+                  <>
+                     <Link
+                        href="/portfolios"
+                        className="relative group overflow-hidden rounded-full bg-foreground px-5 py-2 text-[13px] font-bold text-background transition-all active:scale-95">
+                        <span className="relative z-10">Open Stalks</span>
+                        <div className="absolute inset-0 translate-y-full bg-primary transition-transform duration-300 group-hover:translate-y-0" />
+                     </Link>
+                     <Avatar title={user.name}>
+                        <AvatarFallback className="bg-primary text-primary-foreground">
+                           {getInitial(user.name)}
+                        </AvatarFallback>
+                     </Avatar>
+                  </>
+               ) : (
+                  <>
+                     <Link
+                        href="/login"
+                        className="text-[13px] font-semibold text-muted-foreground hover:text-foreground">
+                        Log in
+                     </Link>
+                     <Link
+                        href="/signup"
+                        className="relative group overflow-hidden rounded-full bg-foreground px-5 py-2 text-[13px] font-bold text-background transition-all active:scale-95">
+                        <span className="relative z-10">Get started</span>
+                        <div className="absolute inset-0 translate-y-full bg-primary transition-transform duration-300 group-hover:translate-y-0" />
+                     </Link>
+                  </>
+               )}
             </div>
          </div>
       </nav>
