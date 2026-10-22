@@ -24,6 +24,7 @@ class Portfolio(Base):
         UUID(as_uuid=True).with_variant(String(36), "mysql"),
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
+        index=True,
     )
     user: Mapped["User"] = relationship("User", back_populates="portfolios")
     exchange: Mapped[ExchangeType] = mapped_column(Enum(ExchangeType), nullable=False)
