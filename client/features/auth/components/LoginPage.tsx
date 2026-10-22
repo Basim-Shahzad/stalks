@@ -24,7 +24,7 @@ const LoginPage = () => {
       mutationFn: (data: { email: string; password: string }) => useAuth.login(data),
       mutationKey: ["login"],
       onSuccess: () => {
-         router.push("/portfolio");
+         router.push("/portfolios");
       },
       onError: (error) => {
          const status = isAxiosError(error) ? error.response?.status : undefined;
