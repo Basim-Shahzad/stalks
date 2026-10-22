@@ -17,30 +17,45 @@ class StalksDataAPIError(RuntimeError):
 
 
 class StalksDataClient:
+    # One pooled client for the whole process (keep-alive / TLS reuse);
+    # closed by close_shared_client() on shutdown.
+    _shared_client: httpx.AsyncClient | None = None
+
     def __init__(self) -> None:
         self._base_url = settings.stalks_data_api_base_url.rstrip("/")
         self._headers = {"X-API-Key": settings.stalks_data_api_key.get_secret_value()}
 
+    def _client(self) -> httpx.AsyncClient:
+        cls = type(self)
+        if cls._shared_client is None or cls._shared_client.is_closed:
+            cls._shared_client = httpx.AsyncClient(
+                base_url=self._base_url,
+                headers=self._headers,
+                timeout=20,
+                follow_redirects=True,
+            )
+        return cls._shared_client
+
+    @classmethod
+    async def close_shared_client(cls) -> None:
+        if cls._shared_client is not None and not cls._shared_client.is_closed:
+            await cls._shared_client.aclose()
+        cls._shared_client = None
+
     async def _request(self, method: str, path: str, **kwargs: Any) -> httpx.Response:
-        async with httpx.AsyncClient(
-            base_url=self._base_url,
-            headers=self._headers,
-            timeout=20,
-            follow_redirects=True,
-        ) as client:
-            try:
-                resp = await client.request(method, path, **kwargs)
-                resp.raise_for_status()
-            except httpx.HTTPStatusError as exc:
-                raise StalksDataAPIError(
-                    f"Stalks Data API request failed: {method} {exc.request.url} "
-                    f"-> {exc.response.status_code}: {exc.response.text}"
-                ) from exc
-            except httpx.HTTPError as exc:
-                raise StalksDataAPIError(
-                    f"Stalks Data API request failed: {method} {path}: {exc}"
-                ) from exc
-            return resp
+        try:
+            resp = await self._client().request(method, path, **kwargs)
+            resp.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            raise StalksDataAPIError(
+                f"Stalks Data API request failed: {method} {exc.request.url} "
+                f"-> {exc.response.status_code}: {exc.response.text}"
+            ) from exc
+        except httpx.HTTPError as exc:
+            raise StalksDataAPIError(
+                f"Stalks Data API request failed: {method} {path}: {exc}"
+            ) from exc
+        return resp
 
     async def list_stock_prices(
         self,
