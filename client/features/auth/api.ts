@@ -1,11 +1,11 @@
 import { useAuthStore } from "./store";
-import api from "@/services/api.service";
+import api, { clearRefreshFailed } from "@/services/api.service";
 import type { User, Tokens } from "./types";
 import { API_BASE } from "@/constants/config";
 import axios from "axios";
 
 export const useAuth = {
-   signup: async (signupData: { name: string; email: string; password: string; isActive: true }) => {
+   signup: async (signupData: { name: string; email: string; password: string }) => {
       const { data: signupResData } = await api.post<User>("/auth/register", signupData);
 
       const { data: loginResData } = await api.post<Tokens>("/auth/login", {
@@ -13,6 +13,7 @@ export const useAuth = {
          password: signupData.password,
       });
 
+      clearRefreshFailed();
       useAuthStore.getState().login(signupResData, loginResData.accessToken);
       return signupResData;
    },
@@ -26,13 +27,16 @@ export const useAuth = {
          },
       });
 
+      clearRefreshFailed();
       useAuthStore.getState().login(meData, loginResData.accessToken);
       return meData;
    },
 
    logout: async () => {
-      const logoutRes = await api.post("/auth/logout", {}, { withCredentials: true });
-      if (logoutRes.status === 204) {
+      try {
+         await api.post("/auth/logout", {}, { withCredentials: true });
+      } finally {
+         // Always drop local session state, even if the server call failed.
          useAuthStore.getState().logout();
       }
    },
@@ -45,6 +49,7 @@ export const useAuth = {
                {},
                { withCredentials: true }, // plain axios — no interceptor
             );
+            clearRefreshFailed();
             useAuthStore.getState().setAccessToken(refreshData.accessToken);
          } catch {
             // No valid cookie — stop here, don't call /me

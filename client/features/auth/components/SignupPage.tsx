@@ -12,6 +12,8 @@ import { GoogleIcon } from "./GoogleIcon";
 import { useAuth } from "../api";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import { isAxiosError } from "axios";
+import { toast } from "sonner";
 
 const Signup = () => {
    const router = useRouter();
@@ -20,10 +22,20 @@ const Signup = () => {
    const [password, setPassword] = useState<string>("");
 
    const { mutate: signup, isPending } = useMutation({
-      mutationFn: (data: { name: string; email: string; password: string; isActive: true }) => useAuth.signup(data),
+      mutationFn: (data: { name: string; email: string; password: string }) => useAuth.signup(data),
       mutationKey: ["signup"],
       onSuccess: () => {
-         router.push("/portfolios");
+         router.push("/portfolio");
+      },
+      onError: (error) => {
+         const status = isAxiosError(error) ? error.response?.status : undefined;
+         toast.error(
+            status === 409
+               ? "An account with this email already exists"
+               : status === 422
+                 ? "Check your details: name needs 3+ characters and password 8+"
+                 : "Could not sign up. Please try again.",
+         );
       },
    });
 
@@ -53,7 +65,13 @@ const Signup = () => {
 
                <Divider />
 
-               <div className="flex flex-col gap-2.5 w-full">
+               <form
+                  className="flex flex-col gap-2.5 w-full"
+                  onSubmit={(e) => {
+                     e.preventDefault();
+                     signup({ name, email, password });
+                  }}
+               >
                   <div className="flex flex-col gap-1 w-full">
                      <Label className="text-sm text-muted-foreground">Username</Label>
                      <Input
@@ -61,6 +79,7 @@ const Signup = () => {
                         type="text"
                         onChange={(e) => setName(e.target.value)}
                         value={name}
+                        minLength={3}
                         required
                      />
                   </div>
@@ -81,19 +100,15 @@ const Signup = () => {
                         type="password"
                         onChange={(e) => setPassword(e.target.value)}
                         value={password}
+                        minLength={8}
                         required
                      />
                   </div>
-               </div>
 
-               <Button
-                  className="w-full mt-6"
-                  variant="secondary"
-                  type="submit"
-                  disabled={isPending}
-                  onClick={() => signup({ name, email, password, isActive: true })}>
-                  Sign up
-               </Button>
+                  <Button className="w-full mt-6" variant="secondary" type="submit" disabled={isPending}>
+                     {isPending ? "Signing up..." : "Sign up"}
+                  </Button>
+               </form>
 
                <Link href="/login" className="text-center text-sm text-primary mt-4 hover:underline">
                   Already have an account? Log in

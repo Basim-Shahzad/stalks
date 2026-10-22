@@ -16,6 +16,11 @@ function AuthInitializer() {
       if (authInitialized) return;
       authInitialized = true;
 
+      // Don't let the next user on this browser see the previous user's cached data.
+      useAuthStore.subscribe((state, prev) => {
+         if (prev.user && !state.user) queryClient.clear();
+      });
+
       useAuth.me().catch(() => {
          useAuthStore.getState().setAuthInitialized(null);
       });

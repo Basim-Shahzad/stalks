@@ -1,9 +1,8 @@
-import axios, { AxiosError, create, type AxiosInstance, InternalAxiosRequestConfig } from "axios";
+import axios, { AxiosError, type AxiosInstance, InternalAxiosRequestConfig } from "axios";
 import { useAuthStore } from "@/features/auth/store";
+import { API_BASE } from "@/constants/config";
 
-const API_BASE = "http://localhost:8000/api/v1";
-
-const api: AxiosInstance = create({
+const api: AxiosInstance = axios.create({
    baseURL: API_BASE,
    headers: { "Content-Type": "application/json" },
    withCredentials: true,
@@ -13,8 +12,10 @@ const isRefreshFailed = () => sessionStorage.getItem("refreshFailed") === "true"
 const setRefreshFailed = () => sessionStorage.setItem("refreshFailed", "true");
 export const clearRefreshFailed = () => sessionStorage.removeItem("refreshFailed");
 
+// Auth endpoints answer 401 for bad credentials/tokens; refreshing there makes no sense.
+const NO_REFRESH_URLS = ["/auth/login", "/auth/register", "/auth/token", "/auth/refresh"];
+
 let isRefreshing = false;
-let refreshFailed = false;
 let failedQueue: {
    resolve: (value?: unknown) => void;
    reject: (reason?: unknown) => void;
@@ -45,6 +46,7 @@ api.interceptors.response.use(
          error.response?.status !== 401 ||
          originalRequest._retry ||
          originalRequest._skipRefresh ||
+         NO_REFRESH_URLS.some((url) => originalRequest.url?.includes(url)) ||
          isRefreshFailed()
       ) {
          return Promise.reject(error);
@@ -67,6 +69,7 @@ api.interceptors.response.use(
             {}, // empty body, cookie is sent automatically
             { withCredentials: true, _skipRefresh: true } as any,
          );
+         clearRefreshFailed();
          useAuthStore.getState().setAccessToken(data.accessToken);
          processQueue(null);
          return api(originalRequest);

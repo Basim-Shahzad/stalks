@@ -5,7 +5,7 @@ import { useAuthStore } from "@/features/auth/store";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 
-const PUBLIC_PATHS = ["/", "/login", "signup"];
+const PUBLIC_PATHS = ["/", "/login", "/signup"];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
    const { isInitialized, user } = useAuthStore();

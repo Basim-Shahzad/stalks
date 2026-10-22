@@ -13,6 +13,7 @@ import { useState } from "react";
 import { useAuth } from "../api";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import { isAxiosError } from "axios";
 
 const LoginPage = () => {
    const router = useRouter();
@@ -25,8 +26,9 @@ const LoginPage = () => {
       onSuccess: () => {
          router.push("/portfolio");
       },
-      onError: () => {
-         toast.error("Invalid Credentials");
+      onError: (error) => {
+         const status = isAxiosError(error) ? error.response?.status : undefined;
+         toast.error(status === 401 ? "Invalid email or password" : "Could not log in. Please try again.");
       },
    });
 
@@ -53,7 +55,13 @@ const LoginPage = () => {
 
                <Divider />
 
-               <div className="w-full flex flex-col gap-2.5">
+               <form
+                  className="w-full flex flex-col gap-2.5"
+                  onSubmit={(e) => {
+                     e.preventDefault();
+                     login({ email, password });
+                  }}
+               >
                   <div className="flex flex-col gap-1 w-full">
                      <Label className="text-sm text-muted-foreground">Email</Label>
                      <Input
@@ -84,11 +92,10 @@ const LoginPage = () => {
                      variant="secondary"
                      type="submit"
                      disabled={isPending}
-                     onClick={() => login({ email, password })}
                   >
                      {isPending ? "Logging in..." : "Log in"}
                   </Button>
-               </div>
+               </form>
             </div>
          </div>
       </div>
