@@ -47,5 +47,5 @@ class BaseService(Generic[ModelType]):
 
     async def delete(self, id: Any) -> ModelType:
         db_obj = await self.get_or_404(id)
-        await self.repository.delete(id)
+        await self.repository.remove(db_obj)
         return db_obj

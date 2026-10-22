@@ -25,6 +25,15 @@ from db.database import Base
 ModelType = TypeVar("ModelType", bound=Base)
 
 
+def _apply_filters(query, model, filters: dict[str, Any]):
+    for field, value in filters.items():
+        column = getattr(model, field, None)
+        if column is None:
+            raise ValueError(f"{model.__name__} has no field {field!r} to filter on")
+        query = query.where(column == value)
+    return query
+
+
 class BaseRepository(Generic[ModelType]):
     def __init__(self, model: Type[ModelType], db: AsyncSession):
         self.model = model
@@ -46,9 +55,9 @@ class BaseRepository(Generic[ModelType]):
 
         Example: repo.get_multi(skip=0, limit=20, freelancer_id=freelancer_id)
         """
-        query = select(self.model)
-        for field, value in filters.items():
-            query = query.where(getattr(self.model, field) == value)
+        # Stable ordering is required for offset/limit pagination to be sane.
+        query = _apply_filters(select(self.model), self.model, filters)
+        query = query.order_by(self.model.created_at, self.model.id)
         query = query.offset(skip).limit(limit)
 
         result = await self.db.execute(query)
@@ -56,9 +65,7 @@ class BaseRepository(Generic[ModelType]):
 
     async def count(self, **filters: Any) -> int:
         """Count rows matching the given equality filters."""
-        query = select(func.count()).select_from(self.model)
-        for field, value in filters.items():
-            query = query.where(getattr(self.model, field) == value)
+        query = _apply_filters(select(func.count()).select_from(self.model), self.model, filters)
 
         result = await self.db.execute(query)
         return result.scalar_one()
@@ -72,7 +79,6 @@ class BaseRepository(Generic[ModelType]):
         db_obj = self.model(**obj_in)
         self.db.add(db_obj)
         await self.db.flush()
-        await self.db.refresh(db_obj)
         return db_obj
 
     async def update(self, db_obj: ModelType, obj_in: dict[str, Any]) -> ModelType:
@@ -81,14 +87,17 @@ class BaseRepository(Generic[ModelType]):
             setattr(db_obj, field, value)
         self.db.add(db_obj)
         await self.db.flush()
-        await self.db.refresh(db_obj)
         return db_obj
+
+    async def remove(self, db_obj: ModelType) -> None:
+        """Delete an already-loaded row. Flushes, does not commit."""
+        await self.db.delete(db_obj)
+        await self.db.flush()
 
     async def delete(self, id: Any) -> ModelType | None:
         """Delete a row by primary key. Returns the deleted object, or None if not found."""
         db_obj = await self.get(id)
         if db_obj is None:
             return None
-        await self.db.delete(db_obj)
-        await self.db.flush()
+        await self.remove(db_obj)
         return db_obj
