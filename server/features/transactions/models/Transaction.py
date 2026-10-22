@@ -28,11 +28,11 @@ class Transaction(Base):
 
     transaction_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
     company: Mapped[str] = mapped_column(String(255), nullable=False)
-    symbol: Mapped[str] = mapped_column(String(20), nullable=False)
+    symbol: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
     sector: Mapped[str] = mapped_column(String(150), nullable=True)
     side: Mapped[Side] = mapped_column(Enum(Side), nullable=False)
     quantity: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
-    rate: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    rate: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False)
     commission: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal("0.00"))
     taxes: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal("0.00"))
     charges: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal("0.00"))

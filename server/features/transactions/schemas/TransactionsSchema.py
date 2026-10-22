@@ -2,8 +2,9 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
-from features.transactions.models.Side import Side
+from pydantic import Field
 
+from features.transactions.models.Side import Side
 from features.base.schema import BaseSchema
 
 
@@ -12,7 +13,7 @@ class TransactionSchema(BaseSchema):
     transaction_date: date
     company: str
     symbol: str
-    sector: str
+    sector: Optional[str] = None
     side: Side
     quantity: Decimal
     rate: Decimal
@@ -29,7 +30,7 @@ class TransactionsListItemSchema(BaseSchema):
     company: Optional[str] = None
     symbol: str
     sector: Optional[str] = None
-    side: str
+    side: Side
     quantity: Decimal
     rate: Decimal
     commission: Optional[Decimal] = None
@@ -41,15 +42,16 @@ class TransactionsListItemSchema(BaseSchema):
 class TransactionCreateSchema(BaseSchema):
     transaction_date: date
     company: Optional[str] = None
-    symbol: str
+    symbol: str = Field(..., min_length=1, max_length=20)
     sector: Optional[str] = None
-    side: str
-    quantity: Decimal
-    rate: Decimal
-    commission: Decimal = Decimal("0.00")
-    taxes: Decimal = Decimal("0.00")
-    charges: Decimal = Decimal("0.00")
-    total_amount: Decimal = Decimal("0.00")
+    side: Side
+    quantity: Decimal = Field(..., gt=0)
+    rate: Decimal = Field(..., ge=0)
+    commission: Decimal = Field(default=Decimal("0.00"), ge=0)
+    taxes: Decimal = Field(default=Decimal("0.00"), ge=0)
+    charges: Decimal = Field(default=Decimal("0.00"), ge=0)
+    # 0 / omitted means "compute it": gross +/- fees for BUY/SELL.
+    total_amount: Decimal = Field(default=Decimal("0.00"), ge=0)
 
 
 class TransactionUpdateSchema(TransactionCreateSchema):

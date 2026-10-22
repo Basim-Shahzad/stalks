@@ -45,9 +45,9 @@ Design notes for this implementation:
     left-to-right column order for this template.
   * Handles multiple pages (Scrip header row can repeat on later pages),
     multiple BUY/SELL sections, and blank/whitespace irregularities.
-  * Sector lookup is optional/local-only — pulled from a `sector_cache.json`
-    file (symbol -> sector). If a symbol isn't present, `sector` is `None`.
-    No sector is ever invented.
+  * Sector lookup is cache-only here — pulled from the shared sector cache
+    (features/transactions/sectors.py). If a symbol isn't present, `sector` is
+    `None` and the import job resolves it from PSX. No sector is ever invented.
   * Designed to be imported and called from a web server (Flask etc.):
     stateless functions, no globals mutated per-call, exceptions raised as
     structured error objects rather than crashing the process, and a single
@@ -56,7 +56,6 @@ Design notes for this implementation:
 
 from __future__ import annotations
 
-import json
 import logging
 import re
 from dataclasses import dataclass, field
@@ -66,6 +65,8 @@ from pathlib import Path
 from typing import Any, BinaryIO, Iterable, cast
 
 import pdfplumber
+
+from ..sectors import get_cached_sector
 
 logger = logging.getLogger("akd_trade_parser")
 
@@ -224,60 +225,6 @@ def _dec_to_jsonable(d: Decimal) -> float:
 
 
 # --------------------------------------------------------------------------- #
-# Sector lookup
-# --------------------------------------------------------------------------- #
-
-
-class SectorLookup:
-    """Loads symbol -> sector mapping from a local sector_cache.json file.
-    Never invents a sector: unknown symbols resolve to None."""
-
-    def __init__(self, cache_path: str | Path | None = None):
-        self._map: dict[str, str] = {}
-        self._loaded_from: str | None = None
-        if cache_path is None:
-            # The shared cache lives in app/services, one level above this parser.
-            candidates = [
-                Path(__file__).resolve().parent.parent / "sector_cache.json",
-                Path(__file__).resolve().parent / "sector_cache.json",
-                Path.cwd() / "sector_cache.json",
-            ]
-        else:
-            candidates = [Path(cache_path)]
-
-        for candidate in candidates:
-            if candidate.is_file():
-                try:
-                    with candidate.open("r", encoding="utf-8") as fh:
-                        raw = json.load(fh)
-                    if isinstance(raw, dict):
-                        # Normalize keys to upper-case for robust matching.
-                        self._map = {
-                            str(k).strip().upper(): str(v).strip()
-                            for k, v in raw.items()
-                            if v is not None
-                        }
-                        self._loaded_from = str(candidate)
-                    else:
-                        logger.warning(
-                            "sector_cache.json at %s is not a JSON object; ignoring.",
-                            candidate,
-                        )
-                except (json.JSONDecodeError, OSError) as exc:
-                    logger.warning("Failed to read sector cache %s: %s", candidate, exc)
-                break  # stop after first existing candidate, parsed or not
-
-    @property
-    def loaded_from(self) -> str | None:
-        return self._loaded_from
-
-    def get(self, symbol: str) -> str | None:
-        if not symbol:
-            return None
-        return self._map.get(symbol.strip().upper())
-
-
-# --------------------------------------------------------------------------- #
 # Core parsing helpers
 # --------------------------------------------------------------------------- #
 
@@ -357,7 +304,6 @@ def _process_line(
     line: str,
     page_idx: int,
     state: _DocState,
-    sector_lookup: SectorLookup,
     result: ParseResult,
 ) -> None:
     # Table header line (may repeat on every page) — nothing to extract, just skip.
@@ -388,13 +334,13 @@ def _process_line(
                     ParseWarning(
                         message=(
                             f"Multiple differing dates found in document "
-                            f"({state.trade_date} vs {parsed}); using first."
+                            f"({state.trade_date} -> {parsed}); rows after this "
+                            f"line use the new date."
                         ),
                         context=f"page {page_idx}",
                     )
                 )
-            else:
-                state.trade_date = parsed
+            state.trade_date = parsed
         else:
             result.warnings.append(
                 ParseWarning(
@@ -441,7 +387,7 @@ def _process_line(
     # Per-scrip data row
     m = _ROW_RE.match(line)
     if m:
-        _process_row(m, page_idx, state, sector_lookup, result)
+        _process_row(m, page_idx, state, result)
         return
 
     # Anything else (letterhead, address, contact, footnotes, disclaimers,
@@ -465,15 +411,14 @@ def _process_row(
     m: re.Match,
     page_idx: int,
     state: _DocState,
-    sector_lookup: SectorLookup,
     result: ParseResult,
 ) -> None:
     scrip = m.group("scrip").strip()
     numbers_raw = _split_numbers(m.group("numbers"))
 
     if state.current_side is None:
-        result.warnings.append(
-            ParseWarning(
+        result.errors.append(
+            ParseError(
                 message=(
                     f"Data row for '{scrip}' found before a BUY/SELL section "
                     f"header; skipping row because side cannot be determined."
@@ -484,8 +429,8 @@ def _process_row(
         return
 
     if len(numbers_raw) != len(_FIELD_NAMES):
-        result.warnings.append(
-            ParseWarning(
+        result.errors.append(
+            ParseError(
                 message=(
                     f"Row for '{scrip}' has {len(numbers_raw)} numeric fields, "
                     f"expected {len(_FIELD_NAMES)}. Raw values: {numbers_raw}. "
@@ -501,8 +446,8 @@ def _process_row(
         try:
             parsed[name] = _parse_decimal(tok)
         except InvalidOperation:
-            result.warnings.append(
-                ParseWarning(
+            result.errors.append(
+                ParseError(
                     message=f"Could not parse numeric field '{name}'={tok!r} for '{scrip}'; skipping row.",
                     context=f"page {page_idx}",
                 )
@@ -549,8 +494,8 @@ def _process_row(
         commission=parsed["commission"],
         taxes=taxes,
         charges=charges,
-        totalAmount=parsed["amount"],
-        sector=sector_lookup.get(scrip),
+        totalAmount=abs(parsed["amount"]),
+        sector=get_cached_sector(scrip),
     )
     result.transactions.append(txn)
 
@@ -560,19 +505,13 @@ def _process_row(
 # --------------------------------------------------------------------------- #
 
 
-def parse_pdf(
-    source: str | Path | BinaryIO | bytes,
-    sector_cache_path: str | Path | None = None,
-) -> ParseResult:
+def parse_pdf(source: str | Path | BinaryIO | bytes) -> ParseResult:
     """Parse a single AKD Securities trade-confirmation PDF.
 
     Args:
         source: file path (str/Path), an open binary file-like object, or raw
             PDF bytes. Suitable for use directly with an uploaded file stream
             in a web server (e.g. Flask's `request.files['file'].stream`).
-        sector_cache_path: optional override for the sector_cache.json path.
-            Defaults to looking next to this module, then the current
-            working directory.
 
     Returns:
         ParseResult with `.transactions`, `.warnings`, `.errors`, `.source`.
@@ -586,7 +525,6 @@ def parse_pdf(
                 return jsonify(result.to_dict()), 422
             return jsonify(result.to_dict())
     """
-    sector_lookup = SectorLookup(sector_cache_path)
     result = ParseResult(source=_describe_source(source))
 
     try:
@@ -610,11 +548,11 @@ def parse_pdf(
 
             for page_idx, line in _iter_pdf_lines(pdf):
                 try:
-                    _process_line(line, page_idx, state, sector_lookup, result)
+                    _process_line(line, page_idx, state, result)
                 except Exception as exc:  # noqa: BLE001
                     # Never let one bad line abort the whole document.
-                    result.warnings.append(
-                        ParseWarning(
+                    result.errors.append(
+                        ParseError(
                             message=f"Unexpected error processing line {line!r}: {exc}",
                             context=f"page {page_idx}",
                         )
@@ -652,16 +590,13 @@ def parse_pdf(
     return result
 
 
-def parse_pdfs(
-    sources: Iterable[str | Path | BinaryIO | bytes],
-    sector_cache_path: str | Path | None = None,
-) -> ParseResult:
+def parse_pdfs(sources: Iterable[str | Path | BinaryIO | bytes]) -> ParseResult:
     """Parse and merge multiple PDFs into a single ParseResult. Useful for
     batch endpoints. Warnings/errors are tagged with their originating source
     via the `context` field where possible."""
     merged = ParseResult(source="batch")
     for src in sources:
-        single = parse_pdf(src, sector_cache_path=sector_cache_path)
+        single = parse_pdf(src)
         merged.transactions.extend(single.transactions)
         merged.warnings.extend(single.warnings)
         merged.errors.extend(single.errors)
@@ -694,40 +629,3 @@ def _open_pdf(source: str | Path | BinaryIO | bytes):
     except (AttributeError, OSError):
         pass
     return pdfplumber.open(cast(Any, source))
-
-
-# --------------------------------------------------------------------------- #
-# CLI entry point (also doubles as a quick manual smoke test)
-# --------------------------------------------------------------------------- #
-
-
-def _main() -> None:
-    import argparse
-    import sys
-
-    parser = argparse.ArgumentParser(
-        description="Parse AKD Securities trade confirmation PDFs."
-    )
-    parser.add_argument("pdfs", nargs="+", help="Path(s) to PDF file(s).")
-    parser.add_argument(
-        "--sector-cache",
-        default=None,
-        help="Path to sector_cache.json (defaults to alongside this script or CWD).",
-    )
-    parser.add_argument("--indent", type=int, default=2, help="JSON indent for output.")
-    args = parser.parse_args()
-
-    if len(args.pdfs) == 1:
-        result = parse_pdf(args.pdfs[0], sector_cache_path=args.sector_cache)
-    else:
-        result = parse_pdfs(args.pdfs, sector_cache_path=args.sector_cache)
-
-    json.dump(result.to_dict(), sys.stdout, indent=args.indent)
-    sys.stdout.write("\n")
-
-    if result.errors:
-        sys.exit(1)
-
-
-if __name__ == "__main__":
-    _main()

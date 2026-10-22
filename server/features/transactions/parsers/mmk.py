@@ -1,6 +1,6 @@
 """
-statement_parser.py
-=======================
+mmk.py
+======
 PSX Transaction Statement Parser Service
 Broker: Munir Khanani Securities (TREC No. 084)
 
@@ -9,7 +9,7 @@ transaction data as a list of dicts suitable for JSON serialisation.
 
 Public API
 ----------
-    from features.transactions.statement_parser import process_statement
+    from features.transactions.parsers.mmk import process_statement
 
     transactions = await process_statement("statement.pdf")
     # → list[dict] ready for json.dumps / frontend delivery
@@ -20,114 +20,20 @@ Each dict contains:
 """
 
 from __future__ import annotations
-from bs4 import BeautifulSoup
 from datetime import date
+from decimal import ROUND_HALF_UP, Decimal
 import asyncio
-import json
 from core.logger import logger
 import re
 from pathlib import Path
 from typing import Optional
 
 import pdfplumber
-import httpx
-import unicodedata
 
-PSX_SECTORS = [
-    "AUTOMOBILE ASSEMBLER",
-    "AUTOMOBILE PARTS & ACCESSORIES",
-    "CABLE & ELECTRICAL GOODS",
-    "CEMENT",
-    "CHEMICAL",
-    "CLOSE - END MUTUAL FUND",
-    "COMMERCIAL BANKS",
-    "ENGINEERING",
-    "EXCHANGE TRADED FUNDS",
-    "FERTILIZER",
-    "FOOD & PERSONAL CARE PRODUCTS",
-    "GLASS & CERAMICS",
-    "INV. BANKS / INV. COS. / SECURITIES COS.",
-    "INSURANCE",
-    "JUTE",
-    "LEATHER & TANNERIES",
-    "LEASING COMPANIES",
-    "MISCELLANEOUS",
-    "MODARABAS",
-    "OIL & GAS EXPLORATION COMPANIES",
-    "OIL & GAS MARKETING COMPANIES",
-    "PAPER, BOARD & PACKAGING",
-    "PHARMACEUTICALS",
-    "POWER GENERATION & DISTRIBUTION",
-    "PROPERTY",
-    "REAL ESTATE INVESTMENT AND SERVICES",
-    "REAL ESTATE INVESTMENT TRUST",
-    "REFINERY",
-    "SUGAR & ALLIED INDUSTRIES",
-    "SYNTHETIC & RAYON",
-    "TECHNOLOGY & COMMUNICATION",
-    "TEXTILE COMPOSITE",
-    "TEXTILE SPINNING",
-    "TEXTILE WEAVING",
-    "TOBACCO",
-    "TRANSPORT",
-    "VANASPATI & ALLIED INDUSTRIES",
-    "WOOLLEN",
-]
+from ..sectors import enrich_with_sectors
 
-# ---------------------------------------------------------------------------
-# Persistent sector cache
-# ---------------------------------------------------------------------------
-# features/transactions/statement_parser.py -> features/transactions -> features -> server
-SECTOR_CACHE_FILE = (
-    Path(__file__).resolve().parents[2]
-    / "core"
-    / "data"
-    / "cache"
-    / "sector_cache.json"
-)
-SECTOR_CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
-_SECTOR_CACHE: dict[str, str] = {}
-
-
-def _load_cache() -> None:
-    """Load sector cache from disk into memory on startup.
-
-    Intentionally synchronous — runs once at import time before the
-    event loop starts, so blocking here is harmless.
-    """
-    global _SECTOR_CACHE
-    if SECTOR_CACHE_FILE.exists():
-        try:
-            _SECTOR_CACHE = json.loads(SECTOR_CACHE_FILE.read_text(encoding="utf-8"))
-            logger.info("Sector cache loaded: %d symbols", len(_SECTOR_CACHE))
-        except (json.JSONDecodeError, OSError) as e:
-            logger.warning("Could not load sector cache: %s — starting fresh", e)
-            _SECTOR_CACHE = {}
-
-
-async def _save_cache() -> None:
-    """Persist current in-memory cache to disk without blocking the event loop.
-
-    Serialises the dict to a JSON string on the calling coroutine, then
-    hands the actual file-write off to a thread-pool worker via
-    asyncio.to_thread so the event loop stays free.
-    """
-    # Snapshot the string representation *before* entering the thread so that
-    # any concurrent mutation of _SECTOR_CACHE between now and the write does
-    # not affect what gets persisted (we always write a consistent snapshot).
-    snapshot = json.dumps(_SECTOR_CACHE, indent=2, ensure_ascii=False)
-
-    def _write() -> None:
-        try:
-            SECTOR_CACHE_FILE.write_text(snapshot, encoding="utf-8")
-        except OSError as e:
-            logger.warning("Could not save sector cache: %s", e)
-
-    await asyncio.to_thread(_write)
-
-
-# Run once at import time
-_load_cache()
+_TWO_PLACES = Decimal("0.01")
+_VALIDATION_TOLERANCE = Decimal("0.05")
 
 # ---------------------------------------------------------------------------
 # Regex patterns
@@ -160,14 +66,14 @@ _RE_TX = re.compile(
     r"([\d,]+)\s+"  # quantity
     r"([\d,]+\.\d+)\s+"  # rate
     r"([\d,]+\.\d+)\s+"  # commission rate (per-share)
-    r"([\d,]+\.\d+)\s+"  # SST  → taxes
-    r"([\d,]+\.\d+)\s+"  # CDC  → charges
-    r"[\d,]+\.\d+\s+"  # CVT/WHT (ignored)
-    r"[\d,]+\.\d+\s+"  # Others  (ignored)
-    r"[\d,]+\.\d+\s+"  # LAGA    (ignored)
-    r"[\d,]+\.\d+\s+"  # SECP    (ignored)
-    r"[\d,]+\.\d+\s+"  # NCS     (ignored)
-    r"(-?[\d,]+\.\d+)\s*$"  # amount
+    r"([\d,]+\.\d+)\s+"  # SST     → taxes
+    r"([\d,]+\.\d+)\s+"  # CDC     → charges
+    r"([\d,]+\.\d+)\s+"  # CVT/WHT → taxes
+    r"([\d,]+\.\d+)\s+"  # Others  → charges
+    r"([\d,]+\.\d+)\s+"  # LAGA    → charges
+    r"([\d,]+\.\d+)\s+"  # SECP    → charges
+    r"([\d,]+\.\d+)\s+"  # NCS     → charges
+    r"(-?[\d,]+\.\d+)\s*$"  # amount (signed as a cash flow; we store the magnitude)
 )
 
 # "Avg. @" summary line — skip these
@@ -197,9 +103,9 @@ _MONTH_MAP = {
 # ---------------------------------------------------------------------------
 
 
-def _parse_number(s: str) -> float:
-    """Remove comma thousands separator and convert to float."""
-    return float(s.replace(",", ""))
+def _parse_number(s: str) -> Decimal:
+    """Remove comma thousands separator and convert to Decimal (never float)."""
+    return Decimal(s.replace(",", ""))
 
 
 def _reformat_date(raw: str) -> str:
@@ -250,130 +156,6 @@ def _is_page_header_line(line: str) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# PSX sector lookup
-# ---------------------------------------------------------------------------
-
-
-def _normalize(s: str) -> str:
-    """
-    Aggressively normalize a sector string for fuzzy comparison.
-    Strips accents, punctuation, extra whitespace; uppercases everything.
-    "PAPER, BOARD & PACKAGING" → "PAPERBOARDPACKAGING"
-    "INV. BANKS / INV. COS. / SECURITIES COS." → "INVBANKSINVCOSSECURITIESCOS"
-    """
-    s = unicodedata.normalize("NFKD", s)
-    s = s.upper()
-    s = re.sub(r"[^A-Z0-9\s]", "", s)  # strip all punctuation
-    s = re.sub(r"\s+", "", s)  # strip all whitespace
-    return s
-
-
-# Build once at module level — avoids rebuilding on every call
-_SECTOR_NORM_MAP: dict[str, str] = {_normalize(s): s for s in PSX_SECTORS}
-
-
-async def get_psx_sector(symbol: str) -> str:
-    """Fetch the PSX sector for *symbol*, with a 3-attempt retry and caching.
-
-    Results are stored in the in-memory ``_SECTOR_CACHE`` and persisted to
-    disk after each successful lookup.  Subsequent calls for the same symbol
-    return instantly from cache.
-
-    Uses ``httpx.AsyncClient`` so it never blocks the event loop.
-    Back-off between retries uses ``asyncio.sleep`` for the same reason.
-
-    Raises
-    ------
-    RuntimeError
-        If the sector cannot be matched after 3 attempts, or if the symbol
-        is not found on the PSX page.
-    """
-    if symbol in _SECTOR_CACHE:
-        return _SECTOR_CACHE[symbol]
-
-    url = f"https://dps.psx.com.pk/company/{symbol}"
-    last_error: Exception | None = None
-
-    # Re-use the same client across all retry attempts to benefit from
-    # connection keep-alive and avoid repeated TLS handshakes.
-    async with httpx.AsyncClient(timeout=15.0) as client:
-        for attempt in range(1, 4):
-            try:
-                resp = await client.get(url)
-                resp.raise_for_status()
-                soup = BeautifulSoup(resp.text, "html.parser")
-
-                candidates: list[str] = []
-                for tag in soup.find_all(True):
-                    for child in tag.children:
-                        if child.name is None:
-                            text = str(child).strip()
-                            if text:
-                                candidates.append(text)
-
-                # Tier 1: exact case-insensitive match
-                for text in candidates:
-                    for canonical in PSX_SECTORS:
-                        if text.upper() == canonical.upper():
-                            _SECTOR_CACHE[symbol] = canonical
-                            await _save_cache()
-                            logger.info("Sector %-12s → %s  [exact]", symbol, canonical)
-                            return canonical
-
-                # Tier 2: normalized match (punctuation/whitespace insensitive)
-                for text in candidates:
-                    norm = _normalize(text)
-                    if norm in _SECTOR_NORM_MAP:
-                        canonical = _SECTOR_NORM_MAP[norm]
-                        _SECTOR_CACHE[symbol] = canonical
-                        await _save_cache()
-                        logger.warning(
-                            "Sector %-12s → %s  [normalized, raw=%r]",
-                            symbol,
-                            canonical,
-                            text,
-                        )
-                        return canonical
-
-                # Tier 3: substring match against full page text
-                full_page_norm = _normalize(soup.get_text())
-                for norm_canonical, canonical in _SECTOR_NORM_MAP.items():
-                    if norm_canonical in full_page_norm:
-                        _SECTOR_CACHE[symbol] = canonical
-                        await _save_cache()
-                        logger.warning(
-                            "Sector %-12s → %s  [substring fallback]", symbol, canonical
-                        )
-                        return canonical
-
-                logger.error(
-                    "Sector not found for %s. First 30 candidate strings from page:\n%s",
-                    symbol,
-                    "\n".join(f"  {c!r}" for c in candidates[:30]),
-                )
-                # RuntimeError is NOT a subclass of httpx.HTTPError, so it
-                # propagates straight out of the retry loop — intentional.
-                raise RuntimeError(
-                    f"Sector not found in PSX page for {symbol!r}. URL: {url}"
-                )
-
-            except httpx.HTTPError as exc:
-                # Covers both network errors (RequestError) and HTTP 4xx/5xx
-                # (HTTPStatusError) — mirrors the original requests.RequestException.
-                last_error = exc
-                logger.warning(
-                    "PSX lookup attempt %d/3 failed for %s: %s", attempt, symbol, exc
-                )
-                if attempt < 3:
-                    await asyncio.sleep(2 * attempt)
-
-    raise RuntimeError(
-        f"Failed to fetch PSX sector for {symbol!r} after 3 attempts. "
-        f"Last error: {last_error}"
-    )
-
-
-# ---------------------------------------------------------------------------
 # Validation — pure computation, no I/O; intentionally synchronous
 # ---------------------------------------------------------------------------
 
@@ -401,7 +183,7 @@ def validate_transaction(tx: dict) -> None:
         )
 
     discrepancy = abs(gross - amt) / gross
-    if discrepancy > 0.05:
+    if discrepancy > _VALIDATION_TOLERANCE:
         raise ValueError(
             f"[{tx['symbol']} {tx['date']}] Validation failed: "
             f"qty={qty} × rate={tx['rate']} = {gross:.2f}, "
@@ -489,11 +271,26 @@ def _extract_transactions_sync(pdf_path: str) -> list[dict]:
                         comm_rate_s,
                         sst_s,
                         cdc_s,
+                        cvt_s,
+                        others_s,
+                        laga_s,
+                        secp_s,
+                        ncs_s,
                         amount_s,
                     ) = m_tx.groups()
 
                     qty = _parse_number(qty_s)
-                    commission = round(qty * _parse_number(comm_rate_s), 2)
+                    commission = (qty * _parse_number(comm_rate_s)).quantize(
+                        _TWO_PLACES, rounding=ROUND_HALF_UP
+                    )
+                    taxes = _parse_number(sst_s) + _parse_number(cvt_s)
+                    charges = (
+                        _parse_number(cdc_s)
+                        + _parse_number(others_s)
+                        + _parse_number(laga_s)
+                        + _parse_number(secp_s)
+                        + _parse_number(ncs_s)
+                    )
 
                     transactions.append(
                         {
@@ -504,9 +301,12 @@ def _extract_transactions_sync(pdf_path: str) -> list[dict]:
                             "quantity": qty,
                             "rate": _parse_number(rate_s),
                             "commission": commission,
-                            "taxes": _parse_number(sst_s),
-                            "charges": _parse_number(cdc_s),
-                            "total_amount": _parse_number(amount_s),
+                            "taxes": taxes,
+                            "charges": charges,
+                            # The statement signs the amount as a cash flow
+                            # (SELL is negative); store the magnitude so BUY and
+                            # SELL are both positive, matching the AKD parser.
+                            "total_amount": abs(_parse_number(amount_s)),
                         }
                     )
                     continue
@@ -620,94 +420,17 @@ async def extract_transactions(pdf_path: str) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
-# Sector enrichment
-# ---------------------------------------------------------------------------
-
-
-async def _enrich_with_sectors(transactions: list[dict]) -> list[dict]:
-    """
-    Add a 'sector' key to every transaction by querying PSX.
-
-    Symbols are deduplicated before querying, then all lookups are fired
-    concurrently with ``asyncio.gather`` — this is the key performance win
-    over the original sequential loop: N symbols resolve in parallel instead
-    of one after another.
-
-    Mutates and returns the input list.
-    """
-    symbols = sorted({t["symbol"] for t in transactions})
-    logger.info("Fetching sectors for %d unique symbols…", len(symbols))
-
-    # Fire all sector lookups concurrently — all HTTP calls overlap in time.
-    sectors = await asyncio.gather(*[get_psx_sector(s) for s in symbols])
-    sector_map = dict(zip(symbols, sectors))
-
-    for tx in transactions:
-        tx["sector"] = sector_map[tx["symbol"]]
-
-    return transactions
-
-
-# ---------------------------------------------------------------------------
-# Duplicate detection — pure computation, no I/O; intentionally synchronous
-# ---------------------------------------------------------------------------
-
-
-def _check_duplicates(transactions: list[dict]) -> list[dict]:
-    """
-    Remove exact duplicate rows caused by double API submissions.
-
-    Two rows are considered duplicates when date + symbol + side + quantity +
-    rate + total_amount are all identical.  The first occurrence is kept;
-    subsequent identical rows are dropped with a warning.
-
-    Genuinely identical trades executed back-to-back on the exchange are
-    astronomically unlikely and are also dropped — if that ever becomes a
-    real issue, add a timestamp column to the key.
-
-    Returns the deduplicated list.
-    """
-    seen: dict[tuple, int] = {}
-    kept: list[dict] = []
-    for i, tx in enumerate(transactions):
-        key = (
-            tx["date"],
-            tx["symbol"],
-            tx["side"],
-            tx["quantity"],
-            tx["rate"],
-            tx["total_amount"],
-        )
-        if key in seen:
-            logger.warning(
-                "Duplicate REMOVED: row %d is identical to row %d  "
-                "(%s %s %s qty=%s rate=%s). Keeping first occurrence only.",
-                i,
-                seen[key],
-                tx["date"],
-                tx["symbol"],
-                tx["side"],
-                tx["quantity"],
-                tx["rate"],
-            )
-        else:
-            seen[key] = i
-            kept.append(tx)
-
-    removed = len(transactions) - len(kept)
-    if removed:
-        logger.info("Deduplication: removed %d duplicate row(s).", removed)
-    return kept
-
-
-# ---------------------------------------------------------------------------
 # Public entry point
 # ---------------------------------------------------------------------------
 
 
 async def process_statement(pdf_path: str) -> list[dict]:
     """
-    Full pipeline: extract → validate → deduplicate → enrich sectors.
+    Full pipeline: extract → validate → enrich sectors.
+
+    Identical rows are deliberately NOT collapsed here: two genuinely
+    identical fills on the same day are legitimate. Re-upload protection is
+    handled against the database by the import job.
 
     This is the **single function to import** when integrating this service
     into a FastAPI route.
@@ -729,8 +452,8 @@ async def process_statement(pdf_path: str) -> list[dict]:
         PDF path does not exist.
     ValueError
         A transaction row is malformed or fails financial validation.
-    RuntimeError
-        A PSX sector lookup fails after retries.
+    SectorNotFoundError / SectorFetchError
+        A PSX sector lookup fails (see features.transactions.sectors).
     """
     logger.info("=== PSX Statement Parser: starting ===")
     logger.info("Input: %s", pdf_path)
@@ -742,33 +465,8 @@ async def process_statement(pdf_path: str) -> list[dict]:
     for tx in transactions:
         validate_transaction(tx)
 
-    # Step 3 – deduplicate (pure computation, sync)
-    transactions = _check_duplicates(transactions)
-
-    # Step 4 – fetch & attach PSX sectors (concurrent async HTTP)
-    await _enrich_with_sectors(transactions)
+    # Step 3 – fetch & attach PSX sectors (cached, bounded concurrency)
+    await enrich_with_sectors(transactions)
 
     logger.info("=== PSX Statement Parser: done (%d records) ===", len(transactions))
     return transactions
-
-
-# ---------------------------------------------------------------------------
-# CLI convenience (python statement_parser.py statement.pdf [out.json])
-# ---------------------------------------------------------------------------
-if __name__ == "__main__":
-    import sys
-
-    if len(sys.argv) < 2:
-        print("Usage: python statement_parser.py <statement.pdf> [output.json]")
-        sys.exit(1)
-
-    pdf_file = sys.argv[1]
-    json_file = sys.argv[2] if len(sys.argv) > 2 else "transactions.json"
-
-    result = asyncio.run(process_statement(pdf_file))
-
-    with open(json_file, "w", encoding="utf-8") as f:
-        json.dump(result, f, indent=2, ensure_ascii=False)
-
-    print(json.dumps(result[:3], indent=2))  # preview first 3 rows
-    print(f"\n… {len(result)} total rows written to {json_file}")

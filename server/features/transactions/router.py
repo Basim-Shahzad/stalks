@@ -146,11 +146,16 @@ async def upload_broker_statement_pdf(
             os.remove(temp_file_path)
         raise
 
-    job = await get_job_service(db).start_pdf_processing(
-        portfolio_id, temp_file_path, job_type
-    )
-
-    await db.commit()
+    try:
+        job = await get_job_service(db).start_pdf_processing(
+            portfolio_id, temp_file_path, job_type
+        )
+        await db.commit()
+    except Exception:
+        # No background task will ever own this file, so don't leak it.
+        if os.path.exists(temp_file_path):
+            os.remove(temp_file_path)
+        raise
 
     background_tasks.add_task(
         run_pdf_processing_job,
@@ -182,13 +187,14 @@ async def get_job_status(
     # the job payload, so authorize by resolving it back to a portfolio
     # the current user owns. Without this, any authenticated user could
     # poll any job by guessing/enumerating UUIDs.
-    portfolio_id = (job.payload or {}).get("portfolio_id")
-    if portfolio_id is None:
+    try:
+        portfolio_id = uuid.UUID(str((job.payload or {}).get("portfolio_id")))
+    except ValueError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Job not found"
         )
     await PortfolioService(PortfolioRepository(db)).get_owned_or_404(
-        uuid.UUID(portfolio_id), current_user.id
+        portfolio_id, current_user.id
     )
 
     return job

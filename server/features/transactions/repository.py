@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from features.base.repository import BaseRepository
 from features.portfolios.models.Portfolio import Portfolio
 
+from .models.Side import Side
 from .models.Transaction import Transaction
 
 
@@ -17,7 +18,7 @@ class TransactionRepository(BaseRepository[Transaction]):
         self,
         user_id: UUID,
         portfolio_ids: list[UUID] | None = None,
-        sides: list[str] | None = None,
+        sides: list[Side] | None = None,
     ) -> list[Transaction]:
         query = (
             select(Transaction)
@@ -33,5 +34,16 @@ class TransactionRepository(BaseRepository[Transaction]):
         query = query.order_by(Transaction.created_at.desc())
 
         result = await self.db.execute(query)
+        return list(result.scalars().all())
+
+    async def list_for_portfolio(self, portfolio_id: UUID) -> list[Transaction]:
+        """All transactions of one portfolio. The caller must already have
+        verified ownership (e.g. PortfolioService.get_owned_or_404), so no
+        join to portfolios is needed. Oldest first."""
+        result = await self.db.execute(
+            select(Transaction)
+            .where(Transaction.portfolio_id == portfolio_id)
+            .order_by(Transaction.transaction_date, Transaction.created_at)
+        )
         return list(result.scalars().all())
 
