@@ -1,5 +1,8 @@
-import requests
+import threading
+import time
 from decimal import Decimal
+
+import requests
 from bs4 import BeautifulSoup
 
 
@@ -22,10 +25,17 @@ class PSXScraperService:
         "Connection": "keep-alive",
     }
 
+    # The whole market-watch page is fetched on every call, so parsed records
+    # are cached briefly and shared by all callers.
+    CACHE_TTL_SECONDS = 20
+
     def __init__(self):
         # Use a session for connection pooling (faster subsequent requests)
         self.session = requests.Session()
         self.session.headers.update(self.HEADERS)
+        self._lock = threading.Lock()
+        self._records: list[dict] | None = None
+        self._fetched_at = 0.0
 
     def _fetch_html(self, timeout: int = 20) -> str:
         """Fetches the raw HTML from the PSX website."""
@@ -100,16 +110,35 @@ class PSXScraperService:
 
         return results
 
+    def _get_records(self) -> list[dict]:
+        """Parsed market-watch rows, refreshed at most every CACHE_TTL_SECONDS.
+        Blocking: call via asyncio.to_thread from async code. The lock also
+        serialises use of the shared requests.Session and collapses concurrent
+        cache misses into a single fetch."""
+        with self._lock:
+            now = time.monotonic()
+            if (
+                self._records is not None
+                and now - self._fetched_at < self.CACHE_TTL_SECONDS
+            ):
+                return self._records
+            self._records = self._parse_html(self._fetch_html())
+            self._fetched_at = time.monotonic()
+            return self._records
+
     def get_market_data(self, symbols: list[str] | None = None) -> list[dict]:
         """
         Public method to get market data.
         Optionally filter by a list of symbols (e.g., ["HBL", "OGDC"]).
         """
-        html = self._fetch_html()
-        records = self._parse_html(html)
+        records = self._get_records()
 
         if symbols:
             lookup = {s.upper() for s in symbols}
             records = [r for r in records if r["symbol"].upper() in lookup]
 
         return records
+
+
+# Shared instance: one Session, one cache for the whole process.
+psx_service = PSXScraperService()
