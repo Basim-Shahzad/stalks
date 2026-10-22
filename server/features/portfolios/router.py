@@ -1,3 +1,4 @@
+import asyncio
 import uuid
 
 from fastapi import APIRouter, Depends, status
@@ -5,10 +6,11 @@ from fastapi import APIRouter, Depends, status
 from api.deps import DBSession
 from features.auth.dependencies import get_current_active_user
 from features.auth.models.User import User
+from features.base.exceptions import ValidationException
 from features.transactions.repository import TransactionRepository
-from services.psx_service import PSXScraperService
+from services.psx_service import psx_service
 
-from .holdings import Holdings
+from .holdings import Holdings, OversellError, TransactionSideError
 from .repository import PortfolioRepository
 from .schemas.PortfolioSchema import (
     PortfolioCreateSchema,
@@ -77,10 +79,14 @@ async def get_portfolio_holdings(
         portfolio_id, current_user.id
     )
 
-    transactions = await TransactionRepository(db).list_for_user(
-        current_user.id, portfolio_ids=[portfolio.id]
-    )
-    psx = PSXScraperService()
+    transactions = await TransactionRepository(db).list_for_portfolio(portfolio.id)
 
-    holdings = Holdings.from_transactions(transactions, psx)
+    # Holdings math is CPU-only but the price enrichment is a blocking HTTP
+    # call, so keep the whole thing off the event loop.
+    try:
+        holdings = await asyncio.to_thread(
+            Holdings.from_transactions, transactions, psx_service
+        )
+    except (OversellError, TransactionSideError, ValueError) as exc:
+        raise ValidationException(f"Cannot compute holdings: {exc}") from exc
     return holdings.to_dict()

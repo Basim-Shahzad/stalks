@@ -2,8 +2,11 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass, field
+from datetime import date
 from decimal import Decimal
 from typing import TYPE_CHECKING
+
+from core.logger import logger
 
 if TYPE_CHECKING:
     from features.transactions.models.Transaction import Transaction
@@ -12,9 +15,23 @@ if TYPE_CHECKING:
 
 TWO_PLACES = Decimal("0.01")
 FOUR_PLACES = Decimal("0.0001")
+# Per-share amounts are carried at higher precision inside lots so that
+# qty * per-share stays within a fraction of a paisa of the real cash amount.
+LOT_PRECISION = Decimal("0.00000001")
 
 _BUY_TOKENS = {"BUY", "SIDE.BUY", "B"}
 _SELL_TOKENS = {"SELL", "SIDE.SELL", "S"}
+# Cash movements that never open or close a stock position.
+_NON_TRADE_TOKENS = {
+    "DEPOSIT",
+    "WITHDRAW",
+    "INCOME",
+    "FEE",
+    "SIDE.DEPOSIT",
+    "SIDE.WITHDRAW",
+    "SIDE.INCOME",
+    "SIDE.FEE",
+}
 
 
 class TransactionSideError(ValueError):
@@ -25,9 +42,10 @@ class OversellError(ValueError):
     """Raised when a SELL transaction's quantity exceeds the open lots for that symbol."""
 
 
-def _classify_side(side) -> bool:
+def _classify_side(side) -> bool | None:
     """
-    Returns True for BUY, False for SELL.
+    Returns True for BUY, False for SELL, None for cash-only movements
+    (DEPOSIT / WITHDRAW / INCOME / FEE) that don't affect positions.
     Raises TransactionSideError for anything unrecognized instead of
     silently defaulting to SELL (which would corrupt P&L on bad data).
     """
@@ -36,7 +54,20 @@ def _classify_side(side) -> bool:
         return True
     if token in _SELL_TOKENS:
         return False
+    if token in _NON_TRADE_TOKENS:
+        return None
     raise TransactionSideError(f"Unrecognized transaction side: {side!r}")
+
+
+@dataclass(frozen=True)
+class OpenLot:
+    """A still-open purchase lot after FIFO matching against sells."""
+
+    symbol: str
+    quantity: Decimal
+    rate: Decimal  # price per share as traded (excludes fees)
+    cost_per_share: Decimal  # cash cost per share (includes fees)
+    purchase_date: date
 
 
 @dataclass
@@ -149,6 +180,7 @@ class Holdings:
         self._lifetime_invested: Decimal = Decimal("0")
         self._lifetime_fees: Decimal = Decimal("0")
         self._lifetime_realised_pnl: Decimal = Decimal("0")
+        self._open_lots: list[OpenLot] = []
 
     # ------------------------------------------------------------------ #
     #  Factory                                                             #
@@ -158,11 +190,14 @@ class Holdings:
     def from_transactions(
         cls,
         transactions: list["Transaction"],
-        psx: "PSXScraperService",
+        psx: "PSXScraperService | None" = None,
     ) -> "Holdings":
+        """Build holdings from the transaction history. Live prices are only
+        fetched when `psx` is given. This is blocking (network) when `psx` is
+        set, so call it via asyncio.to_thread from async code."""
         instance = cls()
         instance._build(transactions)
-        if instance._holdings:
+        if psx is not None and instance._holdings:
             instance._enrich(psx)
         return instance
 
@@ -173,6 +208,11 @@ class Holdings:
     @property
     def holdings(self) -> list[Holding]:
         return list(self._holdings.values())
+
+    @property
+    def open_lots(self) -> list[OpenLot]:
+        """Open purchase lots (FIFO-matched), oldest first within each symbol."""
+        return list(self._open_lots)
 
     @property
     def summary(self) -> HoldingsSummary:
@@ -196,9 +236,12 @@ class Holdings:
         total_realised = self._lifetime_realised_pnl
 
         total_pnl = total_unrealised + total_realised
+        # Return on everything ever invested: total_pnl includes realised P&L
+        # from closed positions, so dividing by only the *open* cost basis
+        # would overstate it.
         total_pnl_pct = (
-            (total_pnl / total_cost_basis * 100).quantize(TWO_PLACES)
-            if total_cost_basis
+            (total_pnl / total_invested * 100).quantize(TWO_PLACES)
+            if total_invested
             else Decimal("0")
         )
         return HoldingsSummary(
@@ -233,11 +276,16 @@ class Holdings:
         than relying on incoming list order. Falls back to date-only if the
         transaction has no id/sequence attribute.
         """
-        lots: dict[str, list[list[Decimal]]] = defaultdict(list)
+        # Each lot: [open_qty, cost_per_share, rate, purchase_date]
+        lots: dict[str, list[list]] = defaultdict(list)
         meta: dict[str, dict] = {}
         total_invested: dict[str, Decimal] = defaultdict(Decimal)
         total_fees: dict[str, Decimal] = defaultdict(Decimal)
         realised_pnl: dict[str, Decimal] = defaultdict(Decimal)
+
+        # Cash-only movements (deposits, withdrawals, income, fees) don't
+        # affect positions; drop them before matching.
+        transactions = [t for t in transactions if _classify_side(t.side) is not None]
 
         def sort_key(t: "Transaction"):
             # No intraday timestamps are available from the data source, so
@@ -266,25 +314,29 @@ class Holdings:
             meta[sym] = {"company": txn.company, "sector": txn.sector or ""}
             total_fees[sym] += fees
 
+            # Amount is the cash magnitude; some statements sign it as a cash
+            # flow (SELL negative), which must not flip realised P&L.
+            amount = abs(txn.total_amount)
+
             if is_buy:
                 # Cost per share is based on total_amount (assumed to include
-                # fees, i.e. the actual cash outlay), kept at 4dp for accumulation
-                # precision, then rounded only at presentation time.
-                cost_per_share = (txn.total_amount / qty).quantize(FOUR_PLACES)
-                lots[sym].append([qty, cost_per_share])
-                total_invested[sym] += txn.total_amount
+                # fees, i.e. the actual cash outlay), kept at high precision
+                # for accumulation, then rounded only at presentation time.
+                cost_per_share = (amount / qty).quantize(LOT_PRECISION)
+                lots[sym].append(
+                    [qty, cost_per_share, txn.rate, txn.transaction_date]
+                )
+                total_invested[sym] += amount
 
             else:  # SELL
                 sell_qty = qty
-                proceeds_per_share = (txn.total_amount / qty).quantize(FOUR_PLACES)
+                proceeds_per_share = (amount / qty).quantize(LOT_PRECISION)
 
                 while sell_qty > 0 and lots[sym]:
-                    lot_qty, lot_cost = lots[sym][0]
+                    lot_qty, lot_cost = lots[sym][0][0], lots[sym][0][1]
                     consumed = min(sell_qty, lot_qty)
 
-                    realised_pnl[sym] += (
-                        consumed * (proceeds_per_share - lot_cost)
-                    ).quantize(FOUR_PLACES)
+                    realised_pnl[sym] += consumed * (proceeds_per_share - lot_cost)
 
                     if consumed >= lot_qty:
                         lots[sym].pop(0)
@@ -314,6 +366,17 @@ class Holdings:
             if not sym_lots:
                 continue
 
+            self._open_lots.extend(
+                OpenLot(
+                    symbol=sym,
+                    quantity=lot[0],
+                    rate=lot[2],
+                    cost_per_share=lot[1],
+                    purchase_date=lot[3],
+                )
+                for lot in sym_lots
+            )
+
             open_qty = sum(l[0] for l in sym_lots)
             if open_qty <= 0:
                 continue
@@ -342,18 +405,29 @@ class Holdings:
         if not symbols:
             return
 
-        market_data: list[dict] = psx.get_market_data(symbols)
+        try:
+            market_data: list[dict] = psx.get_market_data(symbols)
+        except Exception:
+            # Prices are best-effort: without them holdings still render with
+            # has_market_data=False instead of failing the whole request.
+            logger.exception("Live price fetch failed; returning holdings without prices")
+            return
 
+        zero = Decimal("0")
         for item in market_data:
             sym = item.get("symbol")
             if sym not in self._holdings:
                 continue
+            current = item.get("current")
+            if current is None:
+                # Blank price cell: leave this symbol without market data.
+                continue
             h = self._holdings[sym]
-            h.current_price = item.get("current", Decimal("0"))
-            h.ldcp = item.get("ldcp", Decimal("0"))
-            h.day_change = item.get("change", Decimal("0"))
-            h.day_change_pct = item.get("change_pct", Decimal("0"))
-            h.direction = item.get("direction", "")
+            h.current_price = current
+            h.ldcp = item.get("ldcp") or zero
+            h.day_change = item.get("change") or zero
+            h.day_change_pct = item.get("change_pct") or zero
+            h.direction = item.get("direction") or ""
             h.has_market_data = True
         # Symbols not present in market_data keep has_market_data=False,
         # so callers can distinguish "no gain/loss" from "no price fetched."
