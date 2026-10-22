@@ -21,4 +21,4 @@ class CreateRefreshToken(BaseSchema):
 
 class LoginSchema(BaseSchema):
     email: EmailStr
-    password: str = Field(..., min_length=8)
+    password: str = Field(..., max_length=128)

@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends, Cookie, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
+from pydantic import ValidationError
 
 from api.deps import DBSession
+from features.base.exceptions import UnauthorizedException
 from features.auth.dependencies import get_current_active_user
 from features.auth.models.User import User
 from features.auth.repository import TokenRepository, UserRepository
@@ -53,7 +55,10 @@ async def token(
     form_data: OAuth2PasswordRequestForm = Depends(),
 ):
     """OAuth2 form-based endpoint — for Swagger UI /docs."""
-    credentials = LoginSchema(email=form_data.username, password=form_data.password)
+    try:
+        credentials = LoginSchema(email=form_data.username, password=form_data.password)
+    except ValidationError:
+        raise UnauthorizedException("Incorrect email or password")
     user = await get_auth_service(db).login(credentials)
     return await get_token_service(db).set_tokens(response, user)
 
@@ -62,7 +67,7 @@ async def token(
 async def refresh(
     response: Response,
     db: DBSession,
-    refresh_token: str = Cookie(default=None, alias=REFRESH_TOKEN_COOKIE),
+    refresh_token: str | None = Cookie(default=None, alias=REFRESH_TOKEN_COOKIE),
 ):
     """
     Uses the httpOnly cookie automatically. Returns a new access_token and
@@ -75,11 +80,13 @@ async def refresh(
 async def logout(
     response: Response,
     db: DBSession,
-    current_user: User = Depends(get_current_active_user),
-    refresh_token: str = Cookie(default=None, alias=REFRESH_TOKEN_COOKIE),
+    refresh_token: str | None = Cookie(default=None, alias=REFRESH_TOKEN_COOKIE),
 ):
-    """Revoke the current session's refresh token and clear the cookie."""
-    await get_token_service(db).logout(response, refresh_token, current_user)
+    """
+    Revoke the current session's refresh token and clear the cookie. Needs no
+    access token, so a user with an expired one can still sign out.
+    """
+    await get_token_service(db).logout(response, refresh_token)
 
 
 @router.post("/logout-all", status_code=status.HTTP_204_NO_CONTENT)
@@ -105,4 +112,9 @@ async def update_me(
     current_user: User = Depends(get_current_active_user),
 ):
     """Update the current user's profile (name / password)."""
-    return await get_auth_service(db).update_me(current_user, payload)
+    password_changed = payload.password is not None
+    user = await get_auth_service(db).update_me(current_user, payload)
+    if password_changed:
+        # Sign out every device so a stolen session can't outlive a password change.
+        await TokenRepository(db).revoke_all_active_for_user(current_user.id)
+    return user

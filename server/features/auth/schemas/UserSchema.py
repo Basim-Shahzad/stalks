@@ -13,14 +13,13 @@ class UserBase(BaseSchema):
 
 
 class UserCreateSchema(UserBase):
-    password: str = Field(..., min_length=8)
+    password: str = Field(..., min_length=8, max_length=128)
 
 
 class UserUpdateSchema(BaseSchema):
     # Fields are optional for PATCH requests
     name: Optional[str] = Field(None, min_length=3, max_length=255)
-    password: Optional[str] = Field(None, min_length=8)
-    is_active: Optional[bool] = None
+    password: Optional[str] = Field(None, min_length=8, max_length=128)
 
 
 class UserResponseSchema(UserBase):

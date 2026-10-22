@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, UTC
+import hashlib
 import secrets
 import jwt
 from pwdlib import PasswordHash
@@ -33,8 +34,13 @@ def create_refresh_token() -> tuple[str, datetime]:
     """
     Returns a (token_string, expiry_datetime) tuple.
     The token is a cryptographically secure random hex string — NOT a JWT.
-    It is stored hashed in the DB and only the raw value is returned to the client.
+    Only the raw value is sent to the client; store hash_refresh_token(token) in the DB.
     """
     token = secrets.token_hex(64)
     expires_at = datetime.now(UTC) + timedelta(days=settings.refresh_token_expire_days)
     return token, expires_at
+
+
+def hash_refresh_token(token: str) -> str:
+    """SHA-256 digest used to store/look up refresh tokens (high-entropy, so no salt needed)."""
+    return hashlib.sha256(token.encode()).hexdigest()

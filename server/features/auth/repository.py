@@ -1,7 +1,7 @@
 from uuid import UUID
 from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from features.base.repository import BaseRepository
@@ -15,9 +15,9 @@ class UserRepository(BaseRepository[User]):
         super().__init__(User, db)
 
     async def get_by_email(self, email: str) -> User | None:
-        """Fetch a single user by their (unique) email address."""
+        """Fetch a single user by their (unique) email address, case-insensitively."""
         result = await self.db.execute(
-            select(User).where(User.email == email)
+            select(User).where(func.lower(User.email) == email.lower())
         )
         return result.scalar_one_or_none()
 
@@ -37,7 +37,7 @@ class TokenRepository(BaseRepository[RefreshToken]):
         return db_obj
 
     async def get_by_token(self, token: str) -> RefreshToken | None:
-        """Look up a refresh token record by its raw token value."""
+        """Look up a refresh token record by its stored (hashed) token value."""
         result = await self.db.execute(
             select(RefreshToken).where(RefreshToken.token == token)
         )

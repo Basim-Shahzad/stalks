@@ -1,10 +1,12 @@
 from fastapi import Response
+from sqlalchemy.exc import IntegrityError
 
 from core.config import settings
 from core.security import (
     create_access_token,
     create_refresh_token,
     hash_password,
+    hash_refresh_token,
     verify_password,
 )
 
@@ -33,7 +35,8 @@ _DUMMY_PASSWORD_HASH = hash_password("dummy-timing-password")
 
 
 def _cookie_path() -> str:
-    return "/"
+    # Only sent to the auth endpoints (refresh / logout), not every API call.
+    return "/api/v1/auth"
 
 
 class AuthService(BaseService[User]):
@@ -42,12 +45,18 @@ class AuthService(BaseService[User]):
         self.repository: UserRepository = repository
 
     async def register(self, obj_in: UserCreateSchema) -> User:
-        if await self.repository.exists(email=obj_in.email):
-            raise ConflictException(f"User with email {obj_in.email} already exists")
+        email = obj_in.email.lower()
+        if await self.repository.get_by_email(email) is not None:
+            raise ConflictException(f"User with email {email} already exists")
 
-        data = obj_in.model_dump(exclude={"password"})
+        data = obj_in.model_dump(exclude={"password", "is_active"})
+        data["email"] = email
         data["password_hash"] = hash_password(obj_in.password)
-        return await self.repository.create(data)
+        try:
+            return await self.repository.create(data)
+        except IntegrityError:
+            # Lost a race with a concurrent registration for the same email.
+            raise ConflictException(f"User with email {email} already exists")
 
     async def login(self, obj_in: LoginSchema) -> User:
         existing = await self.repository.get_by_email(obj_in.email)
@@ -92,7 +101,7 @@ class TokenService(BaseService[RefreshToken]):
         await self.repository.create_refresh_token_record(
             CreateRefreshToken(
                 user_id=user.id,
-                token=raw_refresh,
+                token=hash_refresh_token(raw_refresh),
                 expires_at=expires_at,
             )
         )
@@ -112,16 +121,26 @@ class TokenService(BaseService[RefreshToken]):
         """Issue a fresh token pair (login / token endpoints)."""
         return await self._issue(response, user)
 
-    async def rotate(self, response: Response, raw_refresh: str) -> AccessTokenResponse:
+    async def rotate(
+        self, response: Response, raw_refresh: str | None
+    ) -> AccessTokenResponse:
         """
         Validates the refresh token, revokes it (rotation) and issues a new pair.
-        An old token that has already been used is rejected.
+        Presenting an already-used token is treated as theft: every session of
+        that user is revoked.
         """
         if not raw_refresh:
             raise UnauthorizedException("No refresh token")
 
-        db_token = await self.repository.get_by_token(raw_refresh)
-        if db_token is None or db_token.revoked or db_token.is_expired():
+        db_token = await self.repository.get_by_token(hash_refresh_token(raw_refresh))
+        if db_token is None:
+            raise UnauthorizedException("Invalid or expired refresh token")
+        if db_token.revoked:
+            await self.repository.revoke_all_active_for_user(db_token.user_id)
+            # get_db() rolls back on exceptions, so persist the revocation first.
+            await self.repository.db.commit()
+            raise UnauthorizedException("Invalid or expired refresh token")
+        if db_token.is_expired():
             raise UnauthorizedException("Invalid or expired refresh token")
 
         user = await UserRepository(self.repository.db).get(db_token.user_id)
@@ -131,13 +150,13 @@ class TokenService(BaseService[RefreshToken]):
         await self.repository.revoke(db_token)
         return await self._issue(response, user)
 
-    async def logout(
-        self, response: Response, raw_refresh: str | None, user: User
-    ) -> None:
-        """Revoke the current refresh token (if it belongs to the user) and clear the cookie."""
+    async def logout(self, response: Response, raw_refresh: str | None) -> None:
+        """Revoke the presented refresh token and clear the cookie."""
         if raw_refresh:
-            db_token = await self.repository.get_by_token(raw_refresh)
-            if db_token is not None and db_token.user_id == user.id:
+            db_token = await self.repository.get_by_token(
+                hash_refresh_token(raw_refresh)
+            )
+            if db_token is not None:
                 await self.repository.revoke(db_token)
         response.delete_cookie(REFRESH_TOKEN_COOKIE, path=_cookie_path())
 

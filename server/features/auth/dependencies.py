@@ -10,6 +10,7 @@ from typing import Annotated
 import jwt
 from fastapi import Depends, HTTPException, status
 from jwt.exceptions import InvalidTokenError
+from pydantic import ValidationError
 
 from api.deps import DBSession
 from core.config import settings
@@ -34,12 +35,10 @@ async def get_current_user(
             token,
             settings.secret_key.get_secret_value(),
             algorithms=[settings.algorithm],
+            options={"require": ["exp", "sub"]},
         )
-        email: str = payload.get("sub")
-        if email is None:
-            raise credentials_exception
-        token_data = TokenData(email=email)
-    except InvalidTokenError:
+        token_data = TokenData(email=payload["sub"])
+    except (InvalidTokenError, ValidationError):
         raise credentials_exception
 
     user = await UserRepository(db).get_by_email(token_data.email)
