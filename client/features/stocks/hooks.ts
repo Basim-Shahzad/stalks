@@ -1,18 +1,10 @@
-import api from "@/services/api.service";
 import { useQuery } from "@tanstack/react-query";
-import { OHLCV } from "./components/CandlestickChart";
+import { useMarketDataApi } from "./api";
 
-type MarketDataType = {
-   exchange: string;
-   symbol: string;
-   rows: number;
-   data: OHLCV[];
-};
-
-export function useMarketData(exchange: string, symbol: string, limit: number) {
+export function useMarketData(exchange: string, symbol: string) {
    return useQuery({
-      queryKey: ["marketData", exchange, symbol, limit],
-      queryFn: () => api.get<MarketDataType>(`/market/data/${exchange}/${symbol}`, { params: { limit } }),
+      queryKey: ["marketData", exchange, symbol],
+      queryFn: () => useMarketDataApi.get(exchange, symbol),
       placeholderData: (prev) => prev,
       staleTime: Infinity,
    });
