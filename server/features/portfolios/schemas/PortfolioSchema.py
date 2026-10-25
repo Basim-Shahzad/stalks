@@ -74,6 +74,7 @@ class PortfolioSummary(BaseSchema):
     total_pnl: Decimal
     total_pnl_pct: Decimal
     holdings_count: int
+    holdings_with_market_data: int
 
 
 class PortfolioHoldingsResponse(BaseSchema):
