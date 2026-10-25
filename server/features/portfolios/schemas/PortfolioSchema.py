@@ -15,7 +15,7 @@ class PortfolioSchema(BaseSchema):
     currency: str
     name: str
     description: str
-    broker: str | None = None
+    broker: Broker | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -26,7 +26,7 @@ class PortfolioListItemSchema(BaseSchema):
     currency: str
     name: str
     description: str
-    broker: str | None = None
+    broker: Broker | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -36,7 +36,7 @@ class PortfolioCreateSchema(BaseSchema):
     currency: str = "PKR"
     name: str
     description: str
-    broker: str | None = None
+    broker: Broker | None = None
 
 
 class PortfolioUpdateSchema(PortfolioCreateSchema):
