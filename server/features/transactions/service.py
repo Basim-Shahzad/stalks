@@ -120,6 +120,10 @@ class TransactionService(BaseService[Transaction]):
         gross = obj_in.quantity * obj_in.rate
         fees = obj_in.commission + obj_in.taxes + obj_in.charges
         total = gross + fees if obj_in.side == Side.BUY else gross - fees
+        if obj_in.side == Side.SELL and total <= 0:
+            raise ValidationException(
+                "Sell proceeds must be greater than the transaction fees."
+            )
         return total.quantize(_TWO_PLACES)
 
     def get_pdf_job_type(self, portfolio: Portfolio) -> str:
