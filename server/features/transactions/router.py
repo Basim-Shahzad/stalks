@@ -145,6 +145,10 @@ async def upload_broker_statement_pdf(
         if os.path.exists(temp_file_path):
             os.remove(temp_file_path)
         raise
+    except Exception:
+        if os.path.exists(temp_file_path):
+            os.remove(temp_file_path)
+        raise
 
     try:
         job = await get_job_service(db).start_pdf_processing(
