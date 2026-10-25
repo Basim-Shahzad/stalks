@@ -56,6 +56,9 @@ class PortfolioHoldings(BaseSchema):
     day_change: Decimal = Decimal("0")
     day_change_pct: Decimal = Decimal("0")
     direction: str = ""
+    has_market_data: bool = False
+    market_data_stale: bool = False
+    quote_fetched_at: datetime | None = None
     realised_pnl: Decimal = Field(default=Decimal("0"))
     market_value: Decimal = Field(default=Decimal("0"))
     cost_basis: Decimal = Field(default=Decimal("0"))

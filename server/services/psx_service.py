@@ -1,9 +1,13 @@
 import threading
 import time
+from datetime import UTC, datetime
 from decimal import Decimal
+from logging import getLogger
 
 import requests
 from bs4 import BeautifulSoup
+
+logger = getLogger(__name__)
 
 
 class PSXScraperService:
@@ -28,6 +32,7 @@ class PSXScraperService:
     # The whole market-watch page is fetched on every call, so parsed records
     # are cached briefly and shared by all callers.
     CACHE_TTL_SECONDS = 20
+    MAX_STALE_SECONDS = 300
 
     def __init__(self):
         # Use a session for connection pooling (faster subsequent requests)
@@ -36,6 +41,7 @@ class PSXScraperService:
         self._lock = threading.Lock()
         self._records: list[dict] | None = None
         self._fetched_at = 0.0
+        self._fetched_at_utc: datetime | None = None
 
     def _fetch_html(self, timeout: int = 20) -> str:
         """Fetches the raw HTML from the PSX website."""
@@ -110,7 +116,7 @@ class PSXScraperService:
 
         return results
 
-    def _get_records(self) -> list[dict]:
+    def _get_records(self, allow_stale: bool = False) -> list[dict]:
         """Parsed market-watch rows, refreshed at most every CACHE_TTL_SECONDS.
         Blocking: call via asyncio.to_thread from async code. The lock also
         serialises use of the shared requests.Session and collapses concurrent
@@ -121,17 +127,45 @@ class PSXScraperService:
                 self._records is not None
                 and now - self._fetched_at < self.CACHE_TTL_SECONDS
             ):
-                return self._records
-            self._records = self._parse_html(self._fetch_html())
-            self._fetched_at = time.monotonic()
-            return self._records
+                return self._add_cache_metadata(self._records, stale=False)
+            try:
+                self._records = self._parse_html(self._fetch_html())
+            except Exception:
+                if (
+                    not allow_stale
+                    or self._records is None
+                    or now - self._fetched_at > self.MAX_STALE_SECONDS
+                ):
+                    raise
+                logger.warning(
+                    "PSX market data unavailable; serving cached quotes fetched at %s",
+                    self._fetched_at_utc,
+                )
+                return self._add_cache_metadata(self._records, stale=True)
 
-    def get_market_data(self, symbols: list[str] | None = None) -> list[dict]:
+            self._fetched_at = time.monotonic()
+            self._fetched_at_utc = datetime.now(UTC)
+            return self._add_cache_metadata(self._records, stale=False)
+
+    def _add_cache_metadata(self, records: list[dict], stale: bool) -> list[dict]:
+        fetched_at = self._fetched_at_utc.isoformat() if self._fetched_at_utc else None
+        return [
+            {
+                **record,
+                "market_data_stale": stale,
+                "quote_fetched_at": fetched_at,
+            }
+            for record in records
+        ]
+
+    def get_market_data(
+        self, symbols: list[str] | None = None, *, allow_stale: bool = False
+    ) -> list[dict]:
         """
         Public method to get market data.
         Optionally filter by a list of symbols (e.g., ["HBL", "OGDC"]).
         """
-        records = self._get_records()
+        records = self._get_records(allow_stale=allow_stale)
 
         if symbols:
             lookup = {s.upper() for s in symbols}

@@ -89,6 +89,8 @@ class Holding:
     day_change_pct: Decimal = Decimal("0")
     direction: str = ""
     has_market_data: bool = False  # True only once _enrich successfully populates this symbol
+    market_data_stale: bool = False
+    quote_fetched_at: str | None = None
 
     # Realised P&L
     realised_pnl: Decimal = field(default=Decimal("0"))
@@ -132,6 +134,8 @@ class Holding:
             "day_change_pct": str(self.day_change_pct),
             "direction": self.direction,
             "has_market_data": self.has_market_data,
+            "market_data_stale": self.market_data_stale,
+            "quote_fetched_at": self.quote_fetched_at,
             "market_value": str(self.market_value),
             "cost_basis": str(self.cost_basis),
             "unrealised_pnl": str(self.unrealised_pnl),
@@ -406,7 +410,9 @@ class Holdings:
             return
 
         try:
-            market_data: list[dict] = psx.get_market_data(symbols)
+            market_data: list[dict] = psx.get_market_data(
+                symbols, allow_stale=True
+            )
         except Exception:
             # Prices are best-effort: without them holdings still render with
             # has_market_data=False instead of failing the whole request.
@@ -429,5 +435,7 @@ class Holdings:
             h.day_change_pct = item.get("change_pct") or zero
             h.direction = item.get("direction") or ""
             h.has_market_data = True
+            h.market_data_stale = bool(item.get("market_data_stale", False))
+            h.quote_fetched_at = item.get("quote_fetched_at")
         # Symbols not present in market_data keep has_market_data=False,
         # so callers can distinguish "no gain/loss" from "no price fetched."
