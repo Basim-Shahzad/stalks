@@ -261,6 +261,14 @@ async def run_pdf_processing_job(
             for w in warnings:
                 logger.warning("Job %s parser warning: %s", job_id, w)
 
+            # Serialize imports for the same portfolio so concurrent uploads
+            # cannot both observe a trade as absent before inserting it.
+            await db.execute(
+                select(Portfolio.id)
+                .where(Portfolio.id == portfolio_id)
+                .with_for_update()
+            )
+
             # Skip trades that are already stored (re-uploading the same
             # statement). A multiset is used so genuinely identical fills
             # within one statement are all kept; only as many as already
