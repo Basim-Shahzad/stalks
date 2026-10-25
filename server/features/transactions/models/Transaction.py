@@ -3,7 +3,7 @@ from datetime import date
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Date, Enum, ForeignKey, Numeric, String, UUID
+from sqlalchemy import Date, Enum, ForeignKey, Index, Numeric, String, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from db.database import Base
@@ -15,6 +15,14 @@ if TYPE_CHECKING:
 
 class Transaction(Base):
     __tablename__ = "transactions"
+    __table_args__ = (
+        Index(
+            "ix_transactions_portfolio_date_created",
+            "portfolio_id",
+            "transaction_date",
+            "created_at",
+        ),
+    )
 
     portfolio_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True).with_variant(String(36), "mysql"),
