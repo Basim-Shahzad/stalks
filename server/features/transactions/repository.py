@@ -19,6 +19,8 @@ class TransactionRepository(BaseRepository[Transaction]):
         user_id: UUID,
         portfolio_ids: list[UUID] | None = None,
         sides: list[Side] | None = None,
+        skip: int = 0,
+        limit: int = 250,
     ) -> list[Transaction]:
         query = (
             select(Transaction)
@@ -31,7 +33,11 @@ class TransactionRepository(BaseRepository[Transaction]):
         if sides:
             query = query.where(Transaction.side.in_(sides))
 
-        query = query.order_by(Transaction.created_at.desc())
+        query = (
+            query.order_by(Transaction.created_at.desc(), Transaction.id.desc())
+            .offset(skip)
+            .limit(limit)
+        )
 
         result = await self.db.execute(query)
         return list(result.scalars().all())
@@ -46,4 +52,3 @@ class TransactionRepository(BaseRepository[Transaction]):
             .order_by(Transaction.transaction_date, Transaction.created_at)
         )
         return list(result.scalars().all())
-

@@ -4,24 +4,37 @@ import { TransactionFilters } from "./hooks/useTransactionFilters";
 
 export const useTransactionApi = {
    getAll: async (filters?: TransactionFilters) => {
-      const { data } = await api.get<TransactionList>(`/transactions/`, {
-         params: {
-            portfolios: filters?.portfolios ? [...filters.portfolios] : undefined,
-            sides: filters?.sides ? [...filters.sides] : undefined,
-         },
-         paramsSerializer: (params) => {
-            const search = new URLSearchParams();
-            for (const [key, value] of Object.entries(params)) {
-               if (Array.isArray(value)) {
-                  value.forEach((v) => search.append(key, v));
-               } else if (value !== undefined) {
-                  search.append(key, value);
+      const pageSize = 250;
+      const transactions: TransactionList = [];
+      let skip = 0;
+
+      while (true) {
+         const { data } = await api.get<TransactionList>(`/transactions/`, {
+            params: {
+               portfolios: filters?.portfolios ? [...filters.portfolios] : undefined,
+               sides: filters?.sides ? [...filters.sides] : undefined,
+               skip,
+               limit: pageSize,
+            },
+            paramsSerializer: (params) => {
+               const search = new URLSearchParams();
+               for (const [key, value] of Object.entries(params)) {
+                  if (Array.isArray(value)) {
+                     value.forEach((v) => search.append(key, v));
+                  } else if (value !== undefined) {
+                     search.append(key, value);
+                  }
                }
-            }
-            return search.toString();
-         },
-      });
-      return data;
+               return search.toString();
+            },
+         });
+
+         transactions.push(...data);
+         if (data.length < pageSize) {
+            return transactions;
+         }
+         skip += pageSize;
+      }
    },
    create: async (transaction: Partial<Transaction>, portfolio_id: string) => {
       const { data } = await api.post<Transaction>(`/transactions/${portfolio_id}`, transaction);

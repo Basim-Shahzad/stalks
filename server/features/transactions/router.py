@@ -56,9 +56,11 @@ async def get_transactions_list(
     current_user: User = Depends(get_current_active_user),
     portfolios: list[uuid.UUID] = Query(default=[]),
     sides: list[str] = Query(default=[]),
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=250, ge=1, le=500),
 ):
     return await get_transaction_service(db).list_for_user(
-        current_user.id, portfolios, sides
+        current_user.id, portfolios, sides, skip=skip, limit=limit
     )
 
 

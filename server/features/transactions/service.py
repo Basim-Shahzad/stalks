@@ -67,6 +67,8 @@ class TransactionService(BaseService[Transaction]):
         user_id: UUID,
         portfolio_ids: list[UUID] | None = None,
         sides: list[str] | None = None,
+        skip: int = 0,
+        limit: int = 250,
     ) -> list[Transaction]:
         parsed_sides: list[Side] | None = None
         if sides:
@@ -77,7 +79,9 @@ class TransactionService(BaseService[Transaction]):
                 raise ValidationException(
                     f"Invalid side filter. Valid values: {valid}."
                 ) from exc
-        return await self.repository.list_for_user(user_id, portfolio_ids, parsed_sides)
+        return await self.repository.list_for_user(
+            user_id, portfolio_ids, parsed_sides, skip=skip, limit=limit
+        )
 
     async def create_for_portfolio(
         self, portfolio: Portfolio, obj_in: TransactionCreateSchema
