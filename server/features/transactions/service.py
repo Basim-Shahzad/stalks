@@ -1,7 +1,7 @@
 import asyncio
 import os
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from decimal import Decimal, InvalidOperation
 from uuid import UUID
 
@@ -209,7 +209,9 @@ def _dedupe_key(
     )
 
 
-async def _existing_trade_counts(db, portfolio_id: UUID) -> Counter:
+async def _existing_trade_counts(
+    db, portfolio_id: UUID, dates: set[date], symbols: set[str]
+) -> Counter:
     result = await db.execute(
         select(
             Transaction.transaction_date,
@@ -218,7 +220,11 @@ async def _existing_trade_counts(db, portfolio_id: UUID) -> Counter:
             Transaction.quantity,
             Transaction.rate,
             Transaction.total_amount,
-        ).where(Transaction.portfolio_id == portfolio_id)
+        ).where(
+            Transaction.portfolio_id == portfolio_id,
+            Transaction.transaction_date.in_(dates),
+            Transaction.symbol.in_(symbols),
+        )
     )
     return Counter(_dedupe_key(*row) for row in result.all())
 
@@ -273,7 +279,13 @@ async def run_pdf_processing_job(
             # statement). A multiset is used so genuinely identical fills
             # within one statement are all kept; only as many as already
             # exist are treated as duplicates.
-            remaining = await _existing_trade_counts(db, portfolio_id)
+            statement_dates = {
+                datetime.strptime(row["date"], "%Y-%m-%d").date() for row in rows
+            }
+            statement_symbols = {str(row["symbol"]).upper() for row in rows}
+            remaining = await _existing_trade_counts(
+                db, portfolio_id, statement_dates, statement_symbols
+            )
 
             new_transactions: list[Transaction] = []
             skipped = 0
