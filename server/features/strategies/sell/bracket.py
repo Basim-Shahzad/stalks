@@ -57,17 +57,30 @@ class BracketStrategy(Strategy):
                 triggered.append((lot, stock))
         return triggered
 
-    def _compute_sell_volume(self, lot: OpenLot) -> int:
-        return int(
-            (lot.quantity * Decimal(str(self.sell_volume_pct))).to_integral_value(
+    def _triggered_by_symbol(self) -> list[tuple[str, dict, Decimal]]:
+        grouped: dict[str, tuple[dict, Decimal]] = {}
+        for lot, stock in self._triggered:
+            current = grouped.get(lot.symbol)
+            quantity = lot.quantity + (current[1] if current else Decimal("0"))
+            grouped[lot.symbol] = (stock, quantity)
+
+        return [
+            (symbol, stock, quantity)
+            for symbol, (stock, quantity) in grouped.items()
+        ]
+
+    def _sell_volume(self, quantity: Decimal) -> int:
+        rounded_volume = int(
+            (quantity * Decimal(str(self.sell_volume_pct))).to_integral_value(
                 rounding=ROUND_HALF_UP
             )
         )
+        return min(rounded_volume, int(quantity))
 
     def format_limit_orders(self) -> list[dict]:
         orders = []
-        for lot, stock in self._triggered:
-            sell_volume = self._compute_sell_volume(lot)
+        for symbol, stock, quantity in self._triggered_by_symbol():
+            sell_volume = self._sell_volume(quantity)
             if sell_volume < 1:
                 continue
 
@@ -77,7 +90,7 @@ class BracketStrategy(Strategy):
             orders.append(
                 {
                     "Account": self.account_id,
-                    "Symbol": lot.symbol,
+                    "Symbol": symbol,
                     "Order Side": "SELL",
                     "Volume": sell_volume,
                     "Price": upper_price,
@@ -90,8 +103,8 @@ class BracketStrategy(Strategy):
 
     def format_slo_orders(self) -> list[dict]:
         orders = []
-        for lot, stock in self._triggered:
-            sell_volume = self._compute_sell_volume(lot)
+        for symbol, stock, quantity in self._triggered_by_symbol():
+            sell_volume = self._sell_volume(quantity)
             if sell_volume < 1:
                 continue
 
@@ -99,7 +112,7 @@ class BracketStrategy(Strategy):
             orders.append(
                 {
                     "Account": self.account_id,
-                    "Symbol": lot.symbol,
+                    "Symbol": symbol,
                     "Order Side": "SELL",
                     "Volume": sell_volume,
                     "Price": stop_price,
