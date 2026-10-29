@@ -95,7 +95,7 @@ _MEMO_VALUE_RE = re.compile(r"^\d+/[A-Za-z0-9]+\s*$")
 
 # A per-scrip data row: SYMBOL <Market e.g. Ready> <11 or 12 numeric tokens>
 # Numeric tokens may contain commas and a leading '-' but not letters.
-_NUMBER_TOKEN = r"-?[\d,]+(?:\.\d+)?"
+_NUMBER_TOKEN = r"-?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?"
 _ROW_RE = re.compile(
     rf"^(?P<scrip>[A-Za-z0-9\-]+)\s+"
     rf"(?P<market>Ready|Future|Spot|T\+\d+)\s+"
@@ -176,7 +176,7 @@ class Transaction:
     company: str | None
     symbol: str
     side: str
-    quantity: int
+    quantity: Decimal
     rate: Decimal
     commission: Decimal
     taxes: Decimal
@@ -190,7 +190,7 @@ class Transaction:
             "company": self.company,
             "symbol": self.symbol,
             "side": self.side,
-            "quantity": self.quantity,
+            "quantity": _dec_to_jsonable(self.quantity),
             "rate": _dec_to_jsonable(self.rate),
             "commission": _dec_to_jsonable(self.commission),
             "taxes": _dec_to_jsonable(self.taxes),
@@ -232,10 +232,10 @@ def _dec_to_jsonable(d: Decimal) -> float:
 def _parse_decimal(token: str) -> Decimal:
     """Parse a numeric token (possibly with thousands separators) into Decimal.
     Raises InvalidOperation on malformed input — caller decides how to handle."""
-    cleaned = token.strip().replace(",", "")
-    if cleaned in ("", "-"):
+    cleaned = token.strip()
+    if not re.fullmatch(_NUMBER_TOKEN, cleaned):
         raise InvalidOperation(f"Empty/invalid numeric token: {token!r}")
-    return Decimal(cleaned)
+    return Decimal(cleaned.replace(",", ""))
 
 
 def _parse_date(raw: str) -> str | None:
@@ -465,17 +465,6 @@ def _process_row(
                 context=f"page {page_idx}",
             )
         )
-    try:
-        quantity_int = int(quantity_dec)
-    except (ValueError, OverflowError):
-        result.errors.append(
-            ParseError(
-                message=f"Quantity for '{scrip}' could not be converted to int: {quantity_dec}",
-                context=f"page {page_idx}",
-            )
-        )
-        return
-
     taxes = parsed["cvt_wht"] + parsed["sales_tax"] + parsed["advance_tax"]
     charges = (
         parsed["secp_laga"]
@@ -489,7 +478,7 @@ def _process_row(
         company=scrip,
         symbol=scrip,
         side=state.current_side,
-        quantity=quantity_int,
+        quantity=quantity_dec,
         rate=parsed["rate"],
         commission=parsed["commission"],
         taxes=taxes,
