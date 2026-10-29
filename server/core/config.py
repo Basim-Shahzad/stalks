@@ -1,10 +1,13 @@
-import os
 from pathlib import Path
+import tomllib
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 ENV_PATH = BASE_DIR / ".env"
+PROJECT_VERSION = tomllib.loads(
+    (BASE_DIR / "pyproject.toml").read_text(encoding="utf-8")
+)["project"]["version"]
 
 
 class Settings(BaseSettings):

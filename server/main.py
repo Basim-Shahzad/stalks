@@ -9,7 +9,7 @@ from features.auth.models.RefreshToken import RefreshToken
 from features.auth.repository import TokenRepository
 from db.database import Base, engine, AsyncSessionLocal
 from api.v1.api import api_router
-from core.config import settings
+from core.config import PROJECT_VERSION, settings
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
@@ -77,4 +77,4 @@ async def root():
 
 @app.get("/status")
 async def status():
-    return {"status": "ok", "version": "1.0.0", "environment": settings.app_env}
+    return {"status": "ok", "version": PROJECT_VERSION, "environment": settings.app_env}

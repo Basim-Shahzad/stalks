@@ -25,8 +25,8 @@ class Job(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     retry_count: Mapped[int] = mapped_column(nullable=False, default=0)
     max_retries: Mapped[int] = mapped_column(nullable=False, default=3)
-    error_message: Mapped[str] = mapped_column(String(255), nullable=True)
-    result: Mapped[str] = mapped_column(String(255), nullable=True)
+    error_message: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    result: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     def __repr__(self):
         return f"<Job {self.job_type} - {self.status.value}>"
