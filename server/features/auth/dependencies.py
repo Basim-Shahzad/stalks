@@ -37,12 +37,15 @@ async def get_current_user(
             algorithms=[settings.algorithm],
             options={"require": ["exp", "sub"]},
         )
-        token_data = TokenData(user_id=payload["sub"])
+        token_data = TokenData(
+            user_id=payload["sub"],
+            token_version=payload.get("token_version", 0),
+        )
     except (InvalidTokenError, ValidationError):
         raise credentials_exception
 
     user = await UserRepository(db).get(token_data.user_id)
-    if user is None:
+    if user is None or user.token_version != token_data.token_version:
         raise credentials_exception
     return user
 

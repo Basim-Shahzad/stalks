@@ -13,6 +13,7 @@ class AccessTokenResponse(BaseSchema):
 
 class TokenData(BaseSchema):
     user_id: uuid.UUID
+    token_version: int = Field(default=0, ge=0)
 
 class CreateRefreshToken(BaseSchema):
     user_id: uuid.UUID

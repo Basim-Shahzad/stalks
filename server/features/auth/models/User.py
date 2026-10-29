@@ -16,6 +16,7 @@ class User(Base):
     )
     password_hash: Mapped[str] = mapped_column(String(200), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    token_version: Mapped[int] = mapped_column(default=0, nullable=False)
 
     portfolios: Mapped[list["Portfolio"]] = relationship(
         "Portfolio", back_populates="user", cascade="all, delete-orphan"

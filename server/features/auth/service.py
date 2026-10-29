@@ -106,6 +106,7 @@ class AuthService(BaseService[User]):
             ):
                 raise AuthenticationException("Current password is incorrect")
             data["password_hash"] = await self._hash(new_password)
+            data["token_version"] = user.token_version + 1
 
         if not data:
             return user
@@ -123,7 +124,12 @@ class TokenService(BaseService[RefreshToken]):
         Issues both tokens. Access token is returned in JSON.
         Refresh token is set as an httpOnly cookie — JS cannot read it.
         """
-        access_token = create_access_token(data={"sub": str(user.id)})
+        access_token = create_access_token(
+            data={
+                "sub": str(user.id),
+                "token_version": user.token_version,
+            }
+        )
         raw_refresh, expires_at = create_refresh_token()
 
         await self.repository.create_refresh_token_record(
@@ -199,4 +205,5 @@ class TokenService(BaseService[RefreshToken]):
     async def logout_all(self, response: Response, user: User) -> None:
         """Revoke every session for the user and clear the cookie."""
         await self.repository.revoke_all_active_for_user(user.id)
+        user.token_version += 1
         response.delete_cookie(REFRESH_TOKEN_COOKIE, path=REFRESH_COOKIE_PATH)
