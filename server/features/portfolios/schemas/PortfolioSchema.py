@@ -14,7 +14,7 @@ class PortfolioSchema(BaseSchema):
     exchange: ExchangeType
     currency: str
     name: str
-    description: str
+    description: str | None
     broker: Broker | None = None
     created_at: datetime
     updated_at: datetime
@@ -25,7 +25,7 @@ class PortfolioListItemSchema(BaseSchema):
     exchange: ExchangeType
     currency: str
     name: str
-    description: str
+    description: str | None
     broker: Broker | None = None
     created_at: datetime
     updated_at: datetime
@@ -33,9 +33,8 @@ class PortfolioListItemSchema(BaseSchema):
 
 class PortfolioCreateSchema(BaseSchema):
     exchange: ExchangeType = ExchangeType.PSX
-    currency: str = "PKR"
     name: str
-    description: str
+    description: str | None = None
     broker: Broker | None = None
 
 
